@@ -1,12 +1,11 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::entrypoint::ProgramResult;
 
-declare_id!("Fg6PaFzntrJZrV7n4e2ySKYGUfzn9H2E9th2zEWCGUhK");
+declare_id!("HihKqREGVHempQFaTLk6XGwB5u8YPopfhX1ptjvXYaqt");
 
 #[program]
-pub mod your_game {
+pub mod pixelana {
     use super::*;
-    pub fn initialize_game(ctx: Context<InitializeGame>, game_id: String) -> ProgramResult {
+    pub fn initialize_game(ctx: Context<InitializeGame>, game_id: String) -> Result<()> {
         let game = &mut ctx.accounts.game;
         game.game_id = game_id;
         game.host = *ctx.accounts.host.key;
@@ -23,7 +22,22 @@ pub mod your_game {
         Ok(())
     }
 
-    pub fn submit_story(ctx: Context<SubmitStory>, story: String) -> ProgramResult {
+    pub fn start_game(ctx: Context<StartGame>) -> Result<()> {
+        let game = &mut ctx.accounts.game;
+
+        // Ensure the game is in a state that allows starting
+        require!(
+            game.status == GameState::WaitingForParticipants,
+            GameError::InvalidGameState
+        );
+
+        // Update the game's state to InProgress
+        game.status = GameState::WaitingForStory;
+
+        Ok(())
+    }
+
+    pub fn submit_story(ctx: Context<SubmitStory>, story: String) -> Result<()> {
         let game = &mut ctx.accounts.game;
         game.story = story;
         game.status = GameState::WaitingForDrawings;
@@ -52,7 +66,7 @@ pub mod your_game {
         Ok(())
     }
 
-    pub fn select_winner(ctx: Context<SelectWinner>, winning_drawing: usize) -> ProgramResult {
+    pub fn select_winner(ctx: Context<SelectWinner>, winning_drawing: usize) -> Result<()> {
         let game = &mut ctx.accounts.game;
         game.winning_drawing = game.drawings[winning_drawing].clone();
         game.status = GameState::Completed;
@@ -76,6 +90,13 @@ pub struct JoinGame<'info> {
     pub game: Account<'info, Game>,
     pub participant: Signer<'info>,
     pub host: AccountInfo<'info>,
+}
+
+#[derive(Accounts)]
+pub struct StartGame<'info> {
+    #[account(mut, has_one = host)]
+    pub game: Account<'info, Game>,
+    pub host: Signer<'info>,
 }
 
 #[derive(Accounts)]
@@ -131,4 +152,6 @@ pub enum GameError {
     GameFull,
     #[msg("You have already submit your drawing.")]
     NotAcceptingDrawings,
+    #[msg("This stage does not match the current game.")]
+    InvalidGameState,
 }
