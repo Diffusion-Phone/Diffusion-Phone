@@ -13,7 +13,7 @@ import html2canvas from 'html2canvas';
 import { toBlob } from 'html-to-image';
 import { Slider } from './ui/slider';
 
-export function WebsocketDemo2() {
+export function RealTimeDraw() {
   const [prompt, setPrompt] = useState('A boat');
   const [denoise, setDenoise] = useState(0.8);
   const [debouncedPrompt] = useDebounce(prompt, 200);
