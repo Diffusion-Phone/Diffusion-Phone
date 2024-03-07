@@ -1,11 +1,13 @@
-"use client";
+'use client';
 
+import { useGameState } from "@/contexts/GameStateProvider";
 import { useSocketAuth } from "@/contexts/SocketAuthContext";
 import { useCallback } from "react";
 
 //TODO: add a parameter: isHost to make sure he could access the host actions
-export const useAction = () => {
+export const useAction = (host= false) => {
   const { socket } = useSocketAuth();
+  const { isHost, gameState } = useGameState();
 
   const joinGame = useCallback(() => {
     if (socket) {
@@ -15,6 +17,7 @@ export const useAction = () => {
 
   const startGame = useCallback(() => {
     if (socket) {
+      console.log(isHost,gameState) 
       socket.emit("startGame");
     }
   }, [socket]);
@@ -26,27 +29,27 @@ export const useAction = () => {
   }, [socket]);
 
   const submitPrompt = useCallback(
-    (prompt: string) => {
+    (playerId: string, prompt: string) => {
       if (socket) {
-        socket.emit("submitPrompt", prompt);
+        socket.emit("submitPrompt", playerId, prompt);
       }
     },
     [socket],
   );
 
   const submitDrawing = useCallback(
-    (drawing: string) => {
+    (playerId: string, drawing: string) => {
       if (socket) {
-        socket.emit("submitDraw", drawing);
+        socket.emit("submitDraw", playerId, drawing);
       }
     },
     [socket],
   );
 
   const likeDraw = useCallback(
-    (playerId: string) => {
+    (playerId: string, socketId: string) => {
       if (socket) {
-        socket.emit("likeDrawing", playerId);
+        socket.emit("likeDrawing", playerId, socketId);
       }
     },
     [socket],
