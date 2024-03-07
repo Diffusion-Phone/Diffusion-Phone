@@ -1,9 +1,7 @@
 'use client';
 import { useSocketAuth } from "@/contexts/SocketAuthContext";
 import { useEffect, useState } from "react";
-import { unstable_noStore as noStore } from "next/cache";
 import Image from "next/image";
-import NavBar from "@/components/navBar";
 import {
   Dialog,
   DialogContent,
@@ -14,7 +12,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { revalidatePath } from "next/cache";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";

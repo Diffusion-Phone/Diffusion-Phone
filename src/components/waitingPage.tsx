@@ -1,5 +1,4 @@
 'use client';
-import NavBar from "@/components/navBar";
 import { Button } from "@/components/ui/button";
 import { Room, type User } from "@/components/waitRoom";
 import { useSocketAuth } from "@/contexts/SocketAuthContext";
@@ -12,8 +11,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { redirect } from "next/navigation";
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useGameState } from "@/contexts/GameStateProvider";
 import { useAction } from "@/lib/useAction";
@@ -36,10 +33,7 @@ function WaitDialog({ open }: { open: boolean }) {
 }
 
 export default function WaitRoom() {
-  // const [users, setUsers] = useState<User[]>([]);
-  // const [leaderBoard, setLeaderBoard] = useState<[string, string]>();
   const [dialogOpen, setDialogOpen] = useState(false);
-  // const router = useRouter();
   const wallet = useWallet();
   const { socket, socketId } = useSocketAuth();
   const { players, isHost, leaderBoard, gameState } = useGameState();
@@ -55,13 +49,6 @@ export default function WaitRoom() {
   }, [gameState, isHost]);
 
   const buttonEnabled = useMemo(() => isHost && players.length >=2, [isHost, players]);
-
-  // const onStart = () => {
-  //   if (socket) {
-  //     socket.emit("startGame"); // than other users would have their dialog opened
-  //     // router.push("/start");
-  //   }
-  // };
 
   return (
     <>

@@ -66,15 +66,6 @@ io.on('connect', (socket) => {
         io.emit('updatePlayers', Object.values(players));
     });
 
-
-    // Provide current list players to the new player
-    // socket.on('getPlayers', () => {
-    //     socket.emit('updatePlayers', Object.values(players));
-    //     io.emit('updateLeaderBoard', Object.entries(leaderBoard).sort((a, b) => b[1] - a[1]));
-    //     console.log(`User ${socket.id} requested players.`);
-    // });
-
-    
     // Listen for host starting the game
     socket.on('startGame', () => {
         gameStarted = true;
@@ -97,13 +88,6 @@ io.on('connect', (socket) => {
             io.emit('endGame');
         }
     })
-
-    // socket.on('getAllContent', () => {
-    //     const allContent = [{type: "story", data: prompt, user: players[Object.keys(players)[0]]}, ...Object.entries(images).map(([publicKey, image]) => {
-    //         return {type: "image", data: image, user: players[publicKey]}
-    //     })];
-    //     io.emit('allContent', allContent);
-    // })
 
     socket.on('likeDrawing', async (publicKey, playerId) => {
         const best = images[publicKey];

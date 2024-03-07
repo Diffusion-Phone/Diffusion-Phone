@@ -1,6 +1,5 @@
 'use client';
 
-import NavBar from "@/components/navBar";
 import { AvatarImage } from "@/components/ui/avatar";
 import Image from "next/image";
 import { type User } from "@/components/waitRoom";
@@ -14,7 +13,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";

@@ -1,9 +1,6 @@
 'use client';
 import { useSocketAuth } from "@/contexts/SocketAuthContext";
 import { useEffect, useState } from "react";
-import { Timer } from "@/components/timer";
-import Image from "next/image";
-import NavBar from "@/components/navBar";
 import {
   Dialog,
   DialogContent,
@@ -14,10 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { revalidatePath } from "next/cache";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { useRouter } from "next/navigation";
-import { time } from "console";
 import { cn } from "@/lib/utils";
 import { useGameState } from "@/contexts/GameStateProvider";
 import { useAction } from "@/lib/useAction";

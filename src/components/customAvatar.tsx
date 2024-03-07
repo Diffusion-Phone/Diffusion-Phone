@@ -1,6 +1,5 @@
 'use client';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-// import { avatars } from "@/lib/avatars"
 import { SvgIcon } from "@/components/customSvg";
 import { Button } from "./ui/button";
 import { useState } from "react";
@@ -62,7 +61,6 @@ export function AvatarPicker() {
   const wallet = useWallet();
   const leftPath =
     "M168 48v160a8 8 0 0 1-13.66 5.66l-80-80a8 8 0 0 1 0-11.32l80-80A8 8 0 0 1 168 48";
-  // const avatarArray = Object.values(avatars);
   const rightPath =
     "m181.66 133.66l-80 80A8 8 0 0 1 88 208V48a8 8 0 0 1 13.66-5.66l80 80a8 8 0 0 1 0 11.32";
   const [name, setName] = useState(genRandomName());
@@ -82,20 +80,6 @@ export function AvatarPicker() {
       setChosen(chosenIndex + 1);
     }
   };
-
-  // Player connects to server/socket and waits for other players to join
-  // const onStart = () => {
-  //   const socket = connectSocket();
-  //   if (socket) {
-  //     socket.emit(
-  //       "addPlayer",
-  //       name,
-  //       `/avatars/${avatars[chosenIndex]}`,
-  //       wallet.publicKey?.toBase58(),
-  //     );
-  //     // router.push('/waiting');
-  //   }
-  // };
 
   return (
 
