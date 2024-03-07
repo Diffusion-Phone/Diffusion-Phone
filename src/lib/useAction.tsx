@@ -6,8 +6,15 @@ import { useCallback } from "react";
 
 //TODO: add a parameter: isHost to make sure he could access the host actions
 export const useAction = (host= false) => {
-  const { socket } = useSocketAuth();
+  const { socket, disconnectSocket } = useSocketAuth();
   const { isHost, gameState } = useGameState();
+
+  // equal leaveGame ?
+  const reset = useCallback(() => {
+    if (socket) {
+      disconnectSocket()
+    }
+  }, [socket, disconnectSocket])
 
   const joinGame = useCallback(() => {
     if (socket) {
@@ -62,6 +69,7 @@ export const useAction = (host= false) => {
   }, [socket]);
 
   return {
+    reset,
     joinGame,
     startGame,
     endGame,
