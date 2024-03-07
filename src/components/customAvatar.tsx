@@ -84,18 +84,18 @@ export function AvatarPicker() {
   };
 
   // Player connects to server/socket and waits for other players to join
-  const onStart = () => {
-    const socket = connectSocket();
-    if (socket) {
-      socket.emit(
-        "addPlayer",
-        name,
-        `/avatars/${avatars[chosenIndex]}`,
-        wallet.publicKey?.toBase58(),
-      );
-      // router.push('/waiting');
-    }
-  };
+  // const onStart = () => {
+  //   const socket = connectSocket();
+  //   if (socket) {
+  //     socket.emit(
+  //       "addPlayer",
+  //       name,
+  //       `/avatars/${avatars[chosenIndex]}`,
+  //       wallet.publicKey?.toBase58(),
+  //     );
+  //     // router.push('/waiting');
+  //   }
+  // };
 
   return (
 
@@ -171,7 +171,7 @@ export function AvatarPicker() {
       </div>
       <Button
         className="ring-offset-3 flex h-[100px] w-[500px] items-center justify-center rounded-xl text-[64px] italic ring-8 ring-orange-600 ring-offset-black transition ease-in-out hover:-translate-y-1 hover:scale-110 hover:bg-[#f7d726]"
-        onClick={onStart}
+        onClick={() => connectSocket({name:name, avatar:`/avatars/${avatars[chosenIndex]}`, pubKey: wallet.publicKey?.toBase58()!})}
       >
         <div className="mr-1 overflow-hidden rounded-full">
           <svg

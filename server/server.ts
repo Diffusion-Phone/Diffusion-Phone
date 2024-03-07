@@ -18,6 +18,14 @@ let images: Record<string, string> = {}; // Images submitted by players
 let leaderBoard: Record<string, number> = {}; // Leaderboard of likes
 let gameStarted = false;
 
+
+io.use((socket, next) => {
+    if (gameStarted) {
+        return next(new Error('Game already started.'));
+    }
+    return next();
+})
+
 // Player connects
 io.on('connect', (socket) => {
     // Add player to memory when they connect to lobby
@@ -36,7 +44,6 @@ io.on('connect', (socket) => {
         io.emit('updatePlayers', Object.values(players));
         io.emit('updateLeaderBoard', Object.entries(leaderBoard).sort((a, b) => b[1] - a[1]));
     });
-
 
     // Player disconnects
     socket.on('disconnect', () => {
@@ -98,9 +105,10 @@ io.on('connect', (socket) => {
     //     io.emit('allContent', allContent);
     // })
 
-    socket.on('like', async (publicKey, playerId) => {
+    socket.on('likeDrawing', async (publicKey, playerId) => {
         const best = images[publicKey];
         leaderBoard[publicKey] = leaderBoard[publicKey] + 1;
+        io.emit('updateLeaderBoard', Object.entries(leaderBoard).sort((a, b) => b[1] - a[1]))
         const data = {
             image: best,
         }
@@ -113,7 +121,7 @@ io.on('connect', (socket) => {
         gameStarted = false;
         prompt = "";
         images = {};
-        io.emit('goBackRoom');
+        io.emit('goBackLobby');
     })
 });
 

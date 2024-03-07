@@ -51,6 +51,18 @@ export const GameStateProvider: FC<{ children: ReactNode }> = ({
         setGameState(newGameState);
       });
 
+      socket.on('disconnect', () => {
+        setGameState(defaultGameState)
+      })
+
+      socket.on("goBackLobby", () => {
+        setGameState((prev) => ({
+          ...prev,
+          uploadedImgs: [],
+          gameState: "waitingForPlayers",
+        }));
+      })
+
       socket.on("updatePlayers", (players: Array<User>) => {
         setGameState((prev) => ({
           ...prev,
