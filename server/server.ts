@@ -18,6 +18,14 @@ let images: Record<string, string> = {}; // Images submitted by players
 let leaderBoard: Record<string, number> = {}; // Leaderboard of likes
 let gameStarted = false;
 
+
+io.use((socket, next) => {
+    if (gameStarted) {
+        return next(new Error('Game already started.'));
+    }
+    return next();
+})
+
 // Player connects
 io.on('connect', (socket) => {
     // Add player to memory when they connect to lobby
@@ -36,7 +44,6 @@ io.on('connect', (socket) => {
         io.emit('updatePlayers', Object.values(players));
         io.emit('updateLeaderBoard', Object.entries(leaderBoard).sort((a, b) => b[1] - a[1]));
     });
-
 
     // Player disconnects
     socket.on('disconnect', () => {
@@ -59,53 +66,33 @@ io.on('connect', (socket) => {
         io.emit('updatePlayers', Object.values(players));
     });
 
-
-    // Provide current list players to the new player
-    socket.on('getPlayers', () => {
-        socket.emit('updatePlayers', Object.values(players));
-        io.emit('updateLeaderBoard', Object.entries(leaderBoard).sort((a, b) => b[1] - a[1]));
-        console.log(`User ${socket.id} requested players.`);
-    });
-
-    
     // Listen for host starting the game
     socket.on('startGame', () => {
         gameStarted = true;
-        const x = Object.values(players).filter(player => !player.isHost).map((player) => player.socketId);
-        io.to(x).emit('hostStarted');
+        console.log(`Host ${socket.id} started the game.`)
+        io.emit("promptStart");
     });  
 
-    socket.on('getPrompt', () => {
-        socket.emit('prompt', prompt);
-    })
-    
     // Listen for player submitting their prompt's text
     socket.on('submitPrompt', (publicKey, promptText) => {
         prompt = promptText;
-
-        const x = Object.values(players).filter(player => !player.isHost).map((player) => player.socketId)
-        io.to(x).emit('hostFinished');
+        io.emit('promptFinished', prompt);
         console.log(`User ${socket.id} submitted prompt: ${promptText}`);
     });
     
     socket.on('submitDraw', (publicKey, image) => {
         images[publicKey] = image;
         console.log(`User ${publicKey} submitted image: ${image}`);
+        io.emit('draw', [publicKey, image])
         if (Object.keys(images).length === Object.keys(players).length - 1) {
-            io.emit('allImagesSubmitted');
+            io.emit('endGame');
         }
     })
 
-    socket.on('getAllContent', () => {
-        const allContent = [{type: "story", data: prompt, user: players[Object.keys(players)[0]]}, ...Object.entries(images).map(([publicKey, image]) => {
-            return {type: "image", data: image, user: players[publicKey]}
-        })];
-        io.emit('allContent', allContent);
-    })
-
-    socket.on('like', async (publicKey, playerId) => {
+    socket.on('likeDrawing', async (publicKey, playerId) => {
         const best = images[publicKey];
         leaderBoard[publicKey] = leaderBoard[publicKey] + 1;
+        io.emit('updateLeaderBoard', Object.entries(leaderBoard).sort((a, b) => b[1] - a[1]))
         const data = {
             image: best,
         }
@@ -118,7 +105,7 @@ io.on('connect', (socket) => {
         gameStarted = false;
         prompt = "";
         images = {};
-        io.emit('goBackRoom');
+        io.emit('goBackLobby');
     })
 });
 
