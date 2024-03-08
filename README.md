@@ -9,16 +9,21 @@ PixeLana was originally a project submission to [HackIllinois 2024](https://hack
 ## Try it Out!
 We are working fast to deploy our application! For eager players that would like to try the game **on the same network**:
 
-1. Open a terminal
+0. Open a terminal, then clone PixeLana using
 ```
-cd diffusion-phone
+git clone https://github.com/PixeLana/PixeLana.git
+```
+
+1. In the same terminal window, run
+```
+cd PixeLana
 npm i
 npm run dev
 ```
 
-2. Open another terminal
+2. Open another terminal window, then run
 ```
-cd diffusion-phone/server
+cd PixeLana/server
 npm i
 npm run dev
 ```
