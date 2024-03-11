@@ -7,7 +7,7 @@ pub mod pixelana {
     use super::*;
     pub fn initialize_game(ctx: Context<InitializeGame>, game_id: String) -> Result<()> {
         let game = &mut ctx.accounts.game;
-        game.game_id = game_id;
+        // game.game_id = game_id;
         game.host = *ctx.accounts.host.key;
         game.status = GameState::WaitingForParticipants;
         Ok(())
@@ -122,7 +122,7 @@ pub struct SelectWinner<'info> {
 
 #[account]
 pub struct Game {
-    pub game_id: String,
+    // pub game_id: String,
     pub host: Pubkey,
     pub participants: Vec<Pubkey>,
     pub story: String,
