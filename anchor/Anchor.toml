@@ -4,14 +4,14 @@
 seeds = false
 skip-lint = false
 
-[programs.localnet]
-anchor = "4W5V4Zvt6Mk1Y2L2ZGho5Y3Kmir6AyFSCaQq7xPDYaC5"
-
 [registry]
 url = "https://api.apr.dev"
 
+[programs.devnet]
+pixelana = "4W5V4Zvt6Mk1Y2L2ZGho5Y3Kmir6AyFSCaQq7xPDYaC5"
+
 [provider]
-cluster = "Localnet"
+cluster = "devnet"
 wallet = "/Users/frank/.config/solana/id.json"
 
 [scripts]
