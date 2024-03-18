@@ -1,7 +1,8 @@
+import { getKeypairFromFile } from '@solana-developers/helpers';
 import { createContext } from 'react';
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { PublicKey } from "@solana/web3.js";
+import { Keypair, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { Pixelana } from "../target/types/pixelana";
 import { expect } from "chai";
 
@@ -21,80 +22,80 @@ describe("anchor", () => {
   const provider = anchor.getProvider();
   const programProvider = program.provider as anchor.AnchorProvider;
   let host = programProvider.wallet
-  let participants = [];
+  // let participants: Array<Keypair> = [];
   const [vaultPda, vaultBump] = PublicKey.findProgramAddressSync([Buffer.from("vault")], program.programId);
 
-  for (let i = 0; i < 3; i++) {
-    let participant = anchor.web3.Keypair.generate();
-    participants.push(participant);
-  }
+  // for (let i = 0; i < 3; i++) {
+  //   let participant = anchor.web3.Keypair.generate();
+  //   participants.push(participant);
+  // }
 
-  async function airdropSol(publicKey, lamports = 1000000000) {
+  async function airdropSol(publicKey, lamports = 1*LAMPORTS_PER_SOL) {
     await provider.connection.confirmTransaction(
       await provider.connection.requestAirdrop(publicKey, lamports),
       "confirmed"
     );
   }
 
-  async function initPlayer(player: PublicKey) {
-    const [playerPda, playerBump] = PublicKey.findProgramAddressSync([Buffer.from("player"), player.toBuffer()], program.programId);
+  async function initPlayer(payer: Keypair) {
+    const [playerPda, playerBump] = PublicKey.findProgramAddressSync([Buffer.from("player"), payer.publicKey.toBuffer()], program.programId);
     const tx = await program.methods.initializePlayer().accounts({
-      payer: player,
+      payer: payer.publicKey,
       player: playerPda
-    }).rpc()
+    }).signers([payer]).rpc()
     console.log("init player: ", tx)
     return [playerPda, playerBump] as const;
   }
 
 
-  before('init vault', async () => {
-    const initVault = await program.methods.initializeVault().accounts({
-      creator: host.publicKey,
-      vault: vaultPda
-    }).rpc();
-    console.log("init vault tx:", initVault);
+  // before('init vault', async () => {
+  //   const initVault = await program.methods.initializeVault().accounts({
+  //     creator: host.publicKey,
+  //     vault: vaultPda
+  //   }).rpc();
+  //   console.log("init vault tx:", initVault);
 
-    await program.account.vault.fetch(vaultPda).then((vault) => {
-      console.log("vault:", vault)
-    })
-  })
+  //   await program.account.vault.fetch(vaultPda).then((vault) => {
+  //     console.log("vault:", vault)
+  //   })
+  // })
 
-  it('init player: host', async () => {
-    const hostPub = programProvider.wallet.publicKey;
-    const [hostPda, hostBump] = await initPlayer(hostPub);
+  // it('init player: host', async () => {
+  //   const hostPub = programProvider.wallet.publicKey;
+  //   const [hostPda, hostBump] = await initPlayer(host);
 
-    await program.account.player.fetch(hostPda).then((player) => {
-      console.log("host:", player)
-    })
+  //   await program.account.player.fetch(hostPda).then((player) => {
+  //     console.log("host:", player)
+  //   })
 
-    const hostDeposit = await program.methods.depositToVault(new anchor.BN(10000000)).accounts({ 
-      depositor: hostPub,
-      vault: vaultPda,
-      player: hostPda
-    }).rpc();
+  //   const hostDeposit = await program.methods.depositToVault(new anchor.BN(10000000)).accounts({ 
+  //     depositor: hostPub,
+  //     vault: vaultPda,
+  //     player: hostPda
+  //   }).rpc();
 
-    console.log("deposited to vault tx:", hostDeposit);
+  //   console.log("deposited to vault tx:", hostDeposit);
 
-    const player = await program.account.player.fetch(hostPda);
+  //   const player = await program.account.player.fetch(hostPda);
 
-    expect(player.balance.toNumber()).to.equal(10000000);
-    expect(player.currentGame).to.equal(null);
-    expect(player.games).to.equal(0);
-  })
+  //   expect(player.balance.toNumber()).to.equal(10000000);
+  //   expect(player.currentGame).to.equal(null);
+  //   expect(player.games).to.equal(0);
+  // })
 
 
-  it('reinit host player', async () => {
+  // it('reinit host player', async () => {
 
-    const hostPub = programProvider.wallet.publicKey;
-    // try to reinit player 1
-    // await airdropSol(player, 3000000000);
-    const [hostPda, _] = await initPlayer(hostPub);
+  //   const hostPub = programProvider.wallet.publicKey;
+  //   // try to reinit player 1
+  //   // await airdropSol(player, 3000000000);
+  //   const [hostPda, _] = await initPlayer(host);
 
-    const host = await program.account.player.fetch(hostPda);
-    expect(host.balance.toNumber()).to.equal(10000000);
-    expect(host.currentGame).to.equal(null);
-    expect(host.games).to.equal(0);
-  })
+  //   const host = await program.account.player.fetch(hostPda);
+  //   expect(host.balance.toNumber()).to.equal(10000000);
+  //   expect(host.currentGame).to.equal(null);
+  //   expect(host.games).to.equal(0);
+  // })
 
   //test it once
   it('init game', async () => {
@@ -117,55 +118,107 @@ describe("anchor", () => {
     })
   })
 
-  // const game_id = generateRandomString(8);
-  // const [hostPda, hostBump] = PublicKey.findProgramAddressSync([Buffer.from("player"), host.publicKey.toBuffer()], program.programId);
-  // const [gamePda, gameBump] = PublicKey.findProgramAddressSync([Buffer.from("game"), Buffer.from(game_id)], program.programId);
-  // const game  = await program.methods.initializeGame(game_id).accounts({
-  //   game: gamePda,
-  //   payer: host.publicKey,
-  //   host: hostPda
-  // }).rpc();
+  const game_id = generateRandomString(8);
+  const [gamePda, gameBump] = PublicKey.findProgramAddressSync([Buffer.from("game"), Buffer.from(game_id)], program.programId);
+  before('a game', async () => {
+    const [hostPda, hostBump] = PublicKey.findProgramAddressSync([Buffer.from("player"), host.publicKey.toBuffer()], program.programId);
+    const game  = await program.methods.initializeGame(game_id).accounts({
+      game: gamePda,
+      payer: host.publicKey,
+      host: hostPda
+    }).rpc();
+    
+  })
 
-  // it('init player: 1', async () => {
 
-  //   // const [gamePda, gameBump] = PublicKey.findProgramAddressSync([Buffer.from("game")], program.programId);
-  //   // const host = programProvider.wallet.publicKey;
-  //   const player = participants[0].publicKey;
-  //   await airdropSol(player, 3000000000);
-  //   const [playerPda, _] = await initPlayer(player);
+  it('init & join player: 1', async () => {
 
-  //   const player1JoinGame = await program.methods.joinGame().accounts({
-  //     payer: player.PublicKey,
-  //     player: playerPda,
-  //     game: gamePda
-  //   }).rpc()
+    const player = await getKeypairFromFile('keypair1.json')
+    // await airdropSol(player.publicKey);
+    const [playerPda, _] = await initPlayer(player);
 
-  //   console.log("player 1 join game tx: ", player1JoinGame)
+    const player1JoinGame = await program.methods.joinGame().accounts({
+      payer: player.publicKey,
+      player: playerPda,
+      game: gamePda
+    }).signers([player]).rpc()
 
-  //   await program.account.game.fetch(gamePda).then((game) => {
-  //     console.log("game:", game)
-  //   })
-  // })
+    console.log("player 1 join game tx: ", player1JoinGame)
 
+    const gameState = await program.account.game.fetch(gamePda)
+    expect(gameState.participants.length).to.equal(1);
+    expect(gameState.status).equals({WaitingForParticipants: {}})
+  })
+
+  it('init & join player: 2', async () => {
+
+    const player = await getKeypairFromFile('keypair2.json')
+    // await airdropSol(player.publicKey);
+    const [playerPda, _] = await initPlayer(player);
+
+    const player1JoinGame = await program.methods.joinGame().accounts({
+      payer: player.publicKey,
+      player: playerPda,
+      game: gamePda
+    }).rpc()
+
+    console.log("player 2 join game tx: ", player1JoinGame)
+
+    const gameState = await program.account.game.fetch(gamePda)
+    expect(gameState.participants.length).to.equal(2);
+    expect(gameState.status).equals({WaitingForParticipants: {}})
+  })
 
     // Initialize the game
 
-  // it('Allows participants to join the game', async () => {
-  //   // Create and add 7 participants
-  //   for (let i = 0; i < 7; i++) {
-  //     let participant = anchor.web3.Keypair.generate();
-  //     await airdropSol(participant.publicKey);
+  it('start game', async () => {
+    // Create and add 7 participants
+    await program.methods.startGame().accounts({
+      game: gamePda,
+      host: host.publicKey
+    }).rpc() 
+    const gameState = await program.account.game.fetch(gamePda)
+    expect(gameState.participants.length).to.equal(2);
+    expect(gameState.status).equals({WaitingForStory: {}})
+  })
 
-  //     await program.rpc.joinGame({
-  //       accounts: {
-  //         game: gameAccount.publicKey,
-  //         participant: participant.publicKey,
-  //       },
-  //       signers: [participant],
-  //     });
+  it('submit story', async () => {
+    const story = "Once upon a time...";
+    await program.methods.submitStory(story).accounts({
+      game: gamePda,
+      host: host.publicKey
+    }).rpc();
+    // Verify the story was submitted
+    const game = await program.account.game.fetch(gamePda);
+    expect(game.story).to.equal(story);
+    expect(game.status).to.equal({WaitingForDrawings: {}})
+  });
 
-  //     participants.push(participant);
-  //   }
+  it('player 1: submit drawing', async () => {
+    const player = await getKeypairFromFile('keypair1.json')
+    const drawingRef = `drawing_${1}`;
+    await program.methods.submitDrawing(drawingRef).accounts({
+      game: gamePda,
+      participant: player.publicKey
+    }).signers([player]).rpc()
+    const game = await program.account.game.fetch(gamePda);
+    expect(game.participants.length).to.equal(2);
+    expect(game.drawings.length).to.equal(1);
+    expect(game.status).to.equal({WaitingForDrawings: {}})
+  });
+
+  it('player 2: submit drawing', async () => {
+    const player = await getKeypairFromFile('keypair2.json')
+    const drawingRef = `drawing_${2}`;
+    await program.methods.submitDrawing(drawingRef).accounts({
+      game: gamePda,
+      participant: player.publicKey
+    }).signers([player]).rpc()
+    const game = await program.account.game.fetch(gamePda);
+    expect(game.participants.length).to.equal(2);
+    expect(game.drawings.length).to.equal(2);
+    expect(game.status).to.equal({SelectingWinner: {}})
+  });
 
   //   // Fetch the updated game account
   //   const game = await program.account.game.fetch(gameAccount.publicKey);

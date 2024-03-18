@@ -3,7 +3,7 @@ use anchor_lang::system_program;
 
 pub const SEED_PLAYER: &[u8] = b"player";
 
-declare_id!("HihKqREGVHempQFaTLk6XGwB5u8YPopfhX1ptjvXYaqt");
+declare_id!("DZSJ9GvbsZMq9omMZhmqWKBM6fSwBmLZx5MPcGJ6fM5J");
 
 #[program]
 pub mod pixelana {
@@ -51,20 +51,19 @@ pub mod pixelana {
         Ok(())
     }
 
-
     pub fn initialize_game(ctx: Context<InitializeGame>, game_id: String) -> Result<()> {
         let game = &mut ctx.accounts.game;
         // game.game_id = game_id;
-        game.host = *ctx.accounts.host.key;
+        game.host = *ctx.accounts.payer.key;
         game.status = GameState::WaitingForParticipants;
         Ok(())
     }
 
     pub fn initialize_player(ctx: Context<InitializePlayer>) -> Result<()> {
-        let player = &mut ctx.accounts.player;
-        player.current_game = None;
-        player.balance = 0;
-        player.games = 0;
+        // let player = &mut ctx.accounts.player;
+        // player.current_game = None;
+        // player.balance = 0;
+        // player.games = 0;
         Ok(())
     }
 
@@ -131,9 +130,9 @@ pub mod pixelana {
         Ok(())
     }
 
-    pub fn select_winner(ctx: Context<SelectWinner>, winning_drawing: usize) -> Result<()> {
+    pub fn select_winner(ctx: Context<SelectWinner>, winning_drawing: u8) -> Result<()> {
         let game = &mut ctx.accounts.game;
-        game.winning_drawing = game.drawings[winning_drawing].clone();
+        game.winning_drawing = game.drawings[winning_drawing as usize].clone();
         game.status = GameState::Completed;
         // Mint NFT logic goes here
         Ok(())
@@ -150,9 +149,9 @@ pub struct InitializeVault<'info> {
     #[account(
         init,
         payer = creator,
-        seeds = [b"unique_vault_seed"],
+        seeds = [b"vault"],
         bump,
-        space = 8 + 8, // Adjust space according to your needs
+        space = 8 + std::mem::size_of::<Vault>(), // Adjust space according to your needs
     )]
     pub vault: Account<'info, Vault>,
     #[account(mut)]
@@ -195,6 +194,7 @@ pub struct Vault {
 }
 
 #[account]
+#[derive(Default)]
 pub struct Player {
     pub current_game: Option<Pubkey>, // 32
     pub balance: u64, // 8
@@ -242,7 +242,7 @@ pub struct InitializePlayer<'info> {
     pub payer: Signer<'info>, // Account that pays for the vault initialization
 
     #[account(
-        init,
+        init_if_needed,
         seeds = [b"player", payer.key.as_ref()],
         bump,
         payer = payer,
@@ -265,10 +265,12 @@ pub struct DeductBalance<'info> {
 #[derive(Accounts)]
 #[instruction(game_id: String)]
 pub struct InitializeGame<'info> {
-    #[account(init, payer = host, space = 10240, seeds = [b"game", game_id.as_bytes()], bump)]
+    #[account(init, payer = payer, space = 10240, seeds = [b"game", game_id.as_bytes()], bump)]
     pub game: Account<'info, Game>,
     #[account(mut)]
-    pub host: Signer<'info>,
+    pub payer: Signer<'info>,
+    #[account(mut, address = Player::pda(payer.key()).0)]
+    pub host: Account<'info, Player>,
     pub system_program: Program<'info, System>,
 }
 
@@ -304,6 +306,7 @@ pub struct SubmitDrawing<'info> {
     pub participant: Signer<'info>,
 }
 
+// would make the mint logic here
 #[derive(Accounts)]
 pub struct SelectWinner<'info> {
     #[account(mut)]
