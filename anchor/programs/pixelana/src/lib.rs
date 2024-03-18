@@ -1,10 +1,57 @@
 use anchor_lang::prelude::*;
+use anchor_lang::system_program;
+
+pub const SEED_PLAYER: &[u8] = b"player";
 
 declare_id!("HihKqREGVHempQFaTLk6XGwB5u8YPopfhX1ptjvXYaqt");
 
 #[program]
 pub mod pixelana {
     use super::*;
+
+    pub fn initialize_vault(ctx: Context<InitializeVault>) -> Result<()> {
+        let vault = &mut ctx.accounts.vault;
+        vault.total_balance = 0; // Initialize the total balance
+        Ok(())
+    }
+
+    pub fn deposit_to_vault(ctx: Context<DepositToVault>, amount: u64) -> Result<()> {
+        // Construct the CPI to the System Program to transfer `amount` of lamports
+        system_program::transfer(
+            CpiContext::new(
+                ctx.accounts.system_program.to_account_info(),
+                system_program::Transfer {
+                    from: ctx.accounts.depositor.to_account_info(),
+                    to: ctx.accounts.vault.to_account_info(),
+                },
+            ),
+            amount,
+        )?;
+
+        ctx.accounts.player.increase_balance(amount);
+
+        Ok(())
+    }
+
+    pub fn withdraw_from_vault(ctx: Context<WithDrawFromVault>, amount: u64) -> Result<()> {
+        require!(ctx.accounts.player.balance >= amount, GameError::NotEnoughBalance);
+        // Construct the CPI to the System Program to transfer `amount` of lamports
+        system_program::transfer(
+            CpiContext::new(
+                ctx.accounts.system_program.to_account_info(),
+                system_program::Transfer {
+                    from: ctx.accounts.vault.to_account_info(),
+                    to: ctx.accounts.withdrawer.to_account_info(),
+                },
+            ),
+            amount,
+        )?;
+
+        ctx.accounts.player.decrease_balance(amount);
+        Ok(())
+    }
+
+
     pub fn initialize_game(ctx: Context<InitializeGame>, game_id: String) -> Result<()> {
         let game = &mut ctx.accounts.game;
         // game.game_id = game_id;
@@ -13,12 +60,29 @@ pub mod pixelana {
         Ok(())
     }
 
+    pub fn initialize_player(ctx: Context<InitializePlayer>) -> Result<()> {
+        let player = &mut ctx.accounts.player;
+        player.current_game = None;
+        player.balance = 0;
+        player.games = 0;
+        Ok(())
+    }
+
+    pub fn deduct_balance(ctx: Context<DeductBalance>, amount: u64) -> Result<()> {
+        let player = &mut ctx.accounts.player;
+        require!(player.has_sufficient(amount), GameError::NotEnoughBalance);
+        player.decrease_balance(amount);
+        Ok(())
+    }
+
     pub fn join_game(ctx: Context<JoinGame>) -> Result<()> {
         let game = &mut ctx.accounts.game;
-
+        let player = &mut ctx.accounts.player;
         require!(game.participants.len() <= 6, GameError::GameFull);
+        require!(game.status == GameState::WaitingForParticipants, GameError::InvalidGameState);
         // Add the new participant
-        game.participants.push(*ctx.accounts.participant.key);
+        game.participants.push(*ctx.accounts.payer.key);
+        player.set_game(game.key());
         Ok(())
     }
 
@@ -36,6 +100,7 @@ pub mod pixelana {
 
         Ok(())
     }
+
 
     pub fn submit_story(ctx: Context<SubmitStory>, story: String) -> Result<()> {
         let game = &mut ctx.accounts.game;
@@ -73,11 +138,134 @@ pub mod pixelana {
         // Mint NFT logic goes here
         Ok(())
     }
+
+    pub fn close_game(ctx: Context<CloseGame>) -> Result<()>{
+        msg!("Game closed");
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
+pub struct InitializeVault<'info> {
+    #[account(
+        init,
+        payer = creator,
+        seeds = [b"unique_vault_seed"],
+        bump,
+        space = 8 + 8, // Adjust space according to your needs
+    )]
+    pub vault: Account<'info, Vault>,
+    #[account(mut)]
+    pub creator: Signer<'info>, // Account that pays for the vault initialization
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct DepositToVault<'info> {
+    #[account(
+        mut,
+        seeds = [b"vault"],
+        bump,
+    )]
+    pub vault: Account<'info, Vault>,
+    #[account(mut)]
+    pub depositor: Signer<'info>,
+
+    #[account(mut, address= Player::pda(depositor.key()).0)]
+    pub player: Account<'info, Player>,
+    pub system_program: Program<'info, System>,
+}
+
+
+#[derive(Accounts)]
+pub struct WithDrawFromVault<'info> {
+    #[account(mut)]
+    pub vault: Account<'info, Vault>,
+    #[account(mut)]
+    pub withdrawer: Signer<'info>,
+    #[account(mut, address = Player::pda(withdrawer.key()).0)]
+    pub player: Account<'info, Player>,
+    pub system_program: Program<'info, System>,
+}
+
+#[account]
+pub struct Vault {
+    pub bump: u8, // Store the bump to allow for programmatic access
+    pub total_balance: u64, // Optionally track the total balance of SOL in the vault
+}
+
+#[account]
+pub struct Player {
+    pub current_game: Option<Pubkey>, // 32
+    pub balance: u64, // 8
+    pub games: u64 // 8
+}
+
+impl Player {
+    pub fn pda(owner: Pubkey) -> (Pubkey, u8) {
+        Pubkey::find_program_address(&[SEED_PLAYER, owner.as_ref()], &crate::ID)
+    }
+
+    pub fn set_game(&mut self, game: Pubkey) {
+        self.current_game = Some(game);
+    }
+
+    pub fn increment_games(&mut self) {
+        self.games += 1;
+    }
+
+    pub fn in_game(&self) -> bool {
+        self.current_game.is_some()
+    }
+
+    pub fn increase_balance(&mut self, amount: u64) {
+        self.balance += amount;
+    }
+
+    pub fn decrease_balance(&mut self, amount: u64) {
+        self.balance -= amount;
+    }
+
+    pub fn has_sufficient(&self, amount: u64) -> bool {
+        if amount <= self.balance {
+            return true;
+        } else {
+            return false;
+        }
+    }
+}
+
+
+#[derive(Accounts)]
+pub struct InitializePlayer<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>, // Account that pays for the vault initialization
+
+    #[account(
+        init,
+        seeds = [b"player", payer.key.as_ref()],
+        bump,
+        payer = payer,
+        space = 8 + std::mem::size_of::<Player>(), // Adjust space according to your needs
+    )]
+    pub player: Account<'info, Player>,
+
+    pub system_program: Program<'info, System>,
+}
+
+
+#[derive(Accounts)]
+pub struct DeductBalance<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(mut, address = Player::pda(payer.key()).0)]
+    pub player: Account<'info, Player>,
+}
+
+#[derive(Accounts)]
+#[instruction(game_id: String)]
 pub struct InitializeGame<'info> {
-    #[account(init, payer = host, space = 10240)]
+    #[account(init, payer = host, space = 10240, seeds = [b"game", game_id.as_bytes()], bump)]
     pub game: Account<'info, Game>,
     #[account(mut)]
     pub host: Signer<'info>,
@@ -86,10 +274,13 @@ pub struct InitializeGame<'info> {
 
 #[derive(Accounts)]
 pub struct JoinGame<'info> {
-    #[account(mut, has_one=host)]
+    #[account(mut)]
     pub game: Account<'info, Game>,
-    pub participant: Signer<'info>,
-    pub host: AccountInfo<'info>,
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(mut, address = Player::pda(payer.key()).0)]
+    pub player: Account<'info, Player>,
+    // pub host: AccountInfo<'info>,
 }
 
 #[derive(Accounts)]
@@ -116,6 +307,13 @@ pub struct SubmitDrawing<'info> {
 #[derive(Accounts)]
 pub struct SelectWinner<'info> {
     #[account(mut)]
+    pub game: Account<'info, Game>,
+    pub host: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct CloseGame<'info> {
+    #[account(mut, close = host)]
     pub game: Account<'info, Game>,
     pub host: Signer<'info>,
 }
@@ -154,4 +352,6 @@ pub enum GameError {
     NotAcceptingDrawings,
     #[msg("This stage does not match the current game.")]
     InvalidGameState,
+    #[msg("Not Enough Balance")]
+    NotEnoughBalance,
 }
