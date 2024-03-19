@@ -5,6 +5,7 @@ import { Program } from "@coral-xyz/anchor";
 import { Keypair, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { Pixelana } from "../target/types/pixelana";
 import { expect } from "chai";
+import exp from 'constants';
 
 function generateRandomString(length) {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -48,54 +49,57 @@ describe("anchor", () => {
   }
 
 
-  // before('init vault', async () => {
-  //   const initVault = await program.methods.initializeVault().accounts({
-  //     creator: host.publicKey,
-  //     vault: vaultPda
-  //   }).rpc();
-  //   console.log("init vault tx:", initVault);
+  // Could only run once
+  before('init vault', async () => {
+    // const initVault = await program.methods.initializeVault().accounts({
+    //   creator: host.publicKey,
+    //   vault: vaultPda
+    // }).rpc();
+    // console.log("init vault tx:", initVault);
 
-  //   await program.account.vault.fetch(vaultPda).then((vault) => {
-  //     console.log("vault:", vault)
-  //   })
-  // })
+    // await program.account.vault.fetch(vaultPda).then((vault) => {
+    //   console.log("vault:", vault)
+    // })
+  })
 
-  // it('init player: host', async () => {
-  //   const hostPub = programProvider.wallet.publicKey;
-  //   const [hostPda, hostBump] = await initPlayer(host);
+  it('init player: host', async () => {
+    const hostPub = programProvider.wallet.publicKey;
 
-  //   await program.account.player.fetch(hostPda).then((player) => {
-  //     console.log("host:", player)
-  //   })
+    const [playerPda, playerBump] = PublicKey.findProgramAddressSync([Buffer.from("player"), hostPub.toBuffer()], program.programId);
+    const tx = await program.methods.initializePlayer().accounts({
+      payer: hostPub,
+      player: playerPda
+    }).rpc()
 
-  //   const hostDeposit = await program.methods.depositToVault(new anchor.BN(10000000)).accounts({ 
-  //     depositor: hostPub,
-  //     vault: vaultPda,
-  //     player: hostPda
-  //   }).rpc();
+    const hostDeposit = await program.methods.depositToVault(new anchor.BN(10000000)).accounts({ 
+      depositor: hostPub,
+      vault: vaultPda,
+      player: playerPda
+    }).rpc();
 
-  //   console.log("deposited to vault tx:", hostDeposit);
+    console.log("deposited to vault tx:", hostDeposit);
 
-  //   const player = await program.account.player.fetch(hostPda);
+    const player = await program.account.player.fetch(playerPda);
 
-  //   expect(player.balance.toNumber()).to.equal(10000000);
-  //   expect(player.currentGame).to.equal(null);
-  //   expect(player.games).to.equal(0);
-  // })
+    expect(player.balance.toNumber()).to.equal(10000000);
+    expect(player.currentGame).to.equal(null);
+    expect(player.games).to.equal(0);
+  })
 
+  it('reinit host player', async () => {
 
-  // it('reinit host player', async () => {
+    const hostPub = programProvider.wallet.publicKey;
+    const [playerPda, playerBump] = PublicKey.findProgramAddressSync([Buffer.from("player"), hostPub.toBuffer()], program.programId);
+    const tx = await program.methods.initializePlayer().accounts({
+      payer: hostPub,
+      player: playerPda
+    }).rpc()
 
-  //   const hostPub = programProvider.wallet.publicKey;
-  //   // try to reinit player 1
-  //   // await airdropSol(player, 3000000000);
-  //   const [hostPda, _] = await initPlayer(host);
-
-  //   const host = await program.account.player.fetch(hostPda);
-  //   expect(host.balance.toNumber()).to.equal(10000000);
-  //   expect(host.currentGame).to.equal(null);
-  //   expect(host.games).to.equal(0);
-  // })
+    const host = await program.account.player.fetch(playerPda);
+    expect(host.balance.toNumber()).to.equal(10000000);
+    expect(host.currentGame).to.equal(null);
+    expect(host.games).to.equal(0);
+  })
 
   //test it once
   it('init game', async () => {
@@ -105,6 +109,7 @@ describe("anchor", () => {
 
     const [hostPda, hostBump] = await PublicKey.findProgramAddressSync([Buffer.from("player"), hostPub.toBuffer()], program.programId);
 
+    // host is in the game now
     const game  = await program.methods.initializeGame(game_id).accounts({
       game: gamePda,
       payer: hostPub,
@@ -113,9 +118,11 @@ describe("anchor", () => {
 
     console.log("init game tx: ", game)
 
-    await program.account.game.fetch(gamePda).then((game) => {
-      console.log("game:", game)
-    })
+    const host = await program.account.player.fetch(hostPda);
+    expect(host.currentGame).to.equal(gamePda); 
+    const gameState = await program.account.game.fetch(gamePda)
+    expect(gameState.participants.length).to.equal(0);
+    expect(gameState.status).equals({waitingForParticipants: {}})
   })
 
   const game_id = generateRandomString(8);
@@ -127,12 +134,11 @@ describe("anchor", () => {
       payer: host.publicKey,
       host: hostPda
     }).rpc();
+
     
   })
 
-
   it('init & join player: 1', async () => {
-
     const player = await getKeypairFromFile('keypair1.json')
     // await airdropSol(player.publicKey);
     const [playerPda, _] = await initPlayer(player);
@@ -145,26 +151,28 @@ describe("anchor", () => {
 
     console.log("player 1 join game tx: ", player1JoinGame)
 
+    const player1 = await program.account.player.fetch(playerPda);
+    expect(player1.currentGame).to.equal(gamePda);
     const gameState = await program.account.game.fetch(gamePda)
     expect(gameState.participants.length).to.equal(1);
     expect(gameState.status).equals({WaitingForParticipants: {}})
   })
 
   it('init & join player: 2', async () => {
-
     const player = await getKeypairFromFile('keypair2.json')
     // await airdropSol(player.publicKey);
     const [playerPda, _] = await initPlayer(player);
 
-    const player1JoinGame = await program.methods.joinGame().accounts({
+    const player2JoinGame = await program.methods.joinGame().accounts({
       payer: player.publicKey,
       player: playerPda,
       game: gamePda
-    }).rpc()
+    }).signers([player]).rpc()
 
-    console.log("player 2 join game tx: ", player1JoinGame)
-
-    const gameState = await program.account.game.fetch(gamePda)
+    console.log("player 2 join game tx: ", player2JoinGame)
+    const player2 = await program.account.player.fetch(playerPda);
+    expect(player2.currentGame).to.equal(gamePda);
+    const gameState = await program.account.game.fetch(gamePda);
     expect(gameState.participants.length).to.equal(2);
     expect(gameState.status).equals({WaitingForParticipants: {}})
   })
@@ -172,14 +180,13 @@ describe("anchor", () => {
     // Initialize the game
 
   it('start game', async () => {
-    // Create and add 7 participants
     await program.methods.startGame().accounts({
       game: gamePda,
       host: host.publicKey
     }).rpc() 
     const gameState = await program.account.game.fetch(gamePda)
     expect(gameState.participants.length).to.equal(2);
-    expect(gameState.status).equals({WaitingForStory: {}})
+    expect(gameState.status).equals({waitingForStory: {}})
   })
 
   it('submit story', async () => {
@@ -191,7 +198,7 @@ describe("anchor", () => {
     // Verify the story was submitted
     const game = await program.account.game.fetch(gamePda);
     expect(game.story).to.equal(story);
-    expect(game.status).to.equal({WaitingForDrawings: {}})
+    expect(game.status).to.equal({waitingForDrawings: {}})
   });
 
   it('player 1: submit drawing', async () => {
@@ -204,7 +211,7 @@ describe("anchor", () => {
     const game = await program.account.game.fetch(gamePda);
     expect(game.participants.length).to.equal(2);
     expect(game.drawings.length).to.equal(1);
-    expect(game.status).to.equal({WaitingForDrawings: {}})
+    expect(game.status).to.equal({waitingForDrawings: {}})
   });
 
   it('player 2: submit drawing', async () => {
@@ -217,7 +224,7 @@ describe("anchor", () => {
     const game = await program.account.game.fetch(gamePda);
     expect(game.participants.length).to.equal(2);
     expect(game.drawings.length).to.equal(2);
-    expect(game.status).to.equal({SelectingWinner: {}})
+    expect(game.status).to.equal({selectingWinner: {}})
   });
 
   //   // Fetch the updated game account
