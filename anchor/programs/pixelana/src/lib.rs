@@ -53,9 +53,11 @@ pub mod pixelana {
 
     pub fn initialize_game(ctx: Context<InitializeGame>, game_id: String) -> Result<()> {
         let game = &mut ctx.accounts.game;
+        let host = &mut ctx.accounts.host;
         // game.game_id = game_id;
         game.host = *ctx.accounts.payer.key;
         game.status = GameState::WaitingForParticipants;
+        host.set_game(game.key());
         Ok(())
     }
 
