@@ -3,7 +3,7 @@ use anchor_lang::system_program;
 
 pub const SEED_PLAYER: &[u8] = b"player";
 
-declare_id!("DZSJ9GvbsZMq9omMZhmqWKBM6fSwBmLZx5MPcGJ6fM5J");
+declare_id!("5uztqw9ZhJ951kFm18eGZzFmCTJpG3LGzfvKcXSWfuUp");
 
 #[program]
 pub mod pixelana {
@@ -58,6 +58,7 @@ pub mod pixelana {
         game.host = *ctx.accounts.payer.key;
         game.status = GameState::WaitingForParticipants;
         host.set_game(game.key());
+        host.increment_games();
         Ok(())
     }
 
@@ -76,6 +77,7 @@ pub mod pixelana {
         Ok(())
     }
 
+    // FIXME: so one thing here is when game finished we did not set player.game to None, therefore not need to check that
     pub fn join_game(ctx: Context<JoinGame>) -> Result<()> {
         let game = &mut ctx.accounts.game;
         let player = &mut ctx.accounts.player;
@@ -84,6 +86,7 @@ pub mod pixelana {
         // Add the new participant
         game.participants.push(*ctx.accounts.payer.key);
         player.set_game(game.key());
+        player.increment_games();
         Ok(())
     }
 
@@ -153,7 +156,7 @@ pub struct InitializeVault<'info> {
         payer = creator,
         seeds = [b"vault"],
         bump,
-        space = 8 + std::mem::size_of::<Vault>(), // Adjust space according to your needs
+        space = 8 + 1 + 8// std::mem::size_of::<Vault>(), // Adjust space according to your needs
     )]
     pub vault: Account<'info, Vault>,
     #[account(mut)]
@@ -198,7 +201,7 @@ pub struct Vault {
 #[account]
 #[derive(Default)]
 pub struct Player {
-    pub current_game: Option<Pubkey>, // 32
+    pub current_game: Option<Pubkey>, // 32 + 1
     pub balance: u64, // 8
     pub games: u64 // 8
 }
@@ -248,7 +251,7 @@ pub struct InitializePlayer<'info> {
         seeds = [b"player", payer.key.as_ref()],
         bump,
         payer = payer,
-        space = 8 + std::mem::size_of::<Player>(), // Adjust space according to your needs
+        space = 8 + 32 + 1 + 8 + 8// std::mem::size_of::<Player>(), // Adjust space according to your needs
     )]
     pub player: Account<'info, Player>,
 
@@ -334,12 +337,16 @@ pub struct Game {
     pub status: GameState,
 }
 
+// space = 32 + 4 + the length of drawing ref
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub struct Drawing {
     pub participant: Pubkey,
     pub drawing_ref: String,
 }
 
+
+
+// space = 1
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
 pub enum GameState {
     WaitingForParticipants,

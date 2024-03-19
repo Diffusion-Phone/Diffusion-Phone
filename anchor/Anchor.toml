@@ -8,7 +8,7 @@ skip-lint = false
 url = "https://api.apr.dev"
 
 [programs.devnet]
-pixelana = "4W5V4Zvt6Mk1Y2L2ZGho5Y3Kmir6AyFSCaQq7xPDYaC5"
+pixelana = "5uztqw9ZhJ951kFm18eGZzFmCTJpG3LGzfvKcXSWfuUp"
 
 [provider]
 cluster = "devnet"
