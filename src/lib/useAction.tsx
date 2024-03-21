@@ -1,81 +1,50 @@
 'use client';
 
+import { useWorkspace } from "@/contexts/WorkspaceProvider";
 import { useGameState } from "@/contexts/GameStateProvider";
 import { useSocketAuth } from "@/contexts/SocketAuthContext";
 import { useCallback } from "react";
+import { IDL } from "../../anchor/target/types/pixelana";
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { programId } from "@/lib/constant";
+import { Program } from "@coral-xyz/anchor";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { PublicKey } from "@solana/web3.js";
 
 //TODO: add a parameter: isHost to make sure he could access the host actions
-export const useAction = (host= false) => {
-  const { socket, disconnectSocket } = useSocketAuth();
-  const { isHost, gameState } = useGameState();
+export function useAnchorProgram() {
+  const { gameState, isHost, gamePda} = useGameState();
+  const {} = useWallet()
+  const {provider, program } = useWorkspace();
 
-  // equal leaveGame ?
-  const reset = useCallback(() => {
-    if (socket) {
-      disconnectSocket()
-    }
-  }, [socket, disconnectSocket])
+  if (!provider || !program) {
+    throw new Error("Workspace not initialized");
+  }
 
-  const joinGame = useCallback(() => {
-    if (socket) {
-      socket.emit("addPlayer");
-    }
-  }, [socket]);
+  const getGameAccount = useQuery({
+    queryKey: ["game"],
+    queryFn: () => program.account.game.fetch(gamePda)
+  });
 
-  const startGame = useCallback(() => {
-    if (socket) {
-      console.log(isHost,gameState) 
-      socket.emit("startGame");
-    }
-  }, [socket]);
+  // const intializeUser = useMutation({
+  //   mutationFn: ({playerPub, playerPda}: {playerPub: PublicKey, playerPda: PublicKey}) => program.methods.initializePlayer().accounts({
+  //     player: playerPda,
+  //     payer: playerPub
+  //   }).rpc(),
+  // });
 
-  const endGame = useCallback(() => {
-    if (socket) {
-      socket.emit("endGame");
-    }
-  }, [socket]);
+  // const intializeGame = useMutation({
+  //   mutationFn: () => program.methods.initializeGame().accounts({
+  //     game: gamePda,
 
-  const submitPrompt = useCallback(
-    (playerId: string, prompt: string) => {
-      if (socket) {
-        socket.emit("submitPrompt", playerId, prompt);
-      }
-    },
-    [socket],
-  );
+  //   }).rpc()
+  // });
 
-  const submitDrawing = useCallback(
-    (playerId: string, drawing: string) => {
-      if (socket) {
-        socket.emit("submitDraw", playerId, drawing);
-      }
-    },
-    [socket],
-  );
+}
 
-  const likeDraw = useCallback(
-    (playerId: string, socketId: string) => {
-      if (socket) {
-        socket.emit("likeDrawing", playerId, socketId);
-      }
-    },
-    [socket],
-  );
 
-  const backRoom = useCallback(() => {
-    if (socket) {
-      socket.emit("backRoom");
-    }
-  }, [socket]);
+export async function initialUser() {
 
-  return {
-    reset,
-    joinGame,
-    startGame,
-    endGame,
-    submitPrompt,
-    submitDrawing,
-    likeDraw,
-    backRoom,
-  };
-};
+  // const payer = provider.wallet;
+  // const [playerPda, playerBump] = PublicKey.findProgramAddressSync([Buffer.from("player"), payer.publicKey.toBuffer()], program.programId);
+}
