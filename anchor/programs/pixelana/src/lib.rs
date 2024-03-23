@@ -7,6 +7,9 @@ use spl_token_2022::{extension::ExtensionType, state::Mint};
 
 
 pub const SEED_PLAYER: &[u8] = b"player";
+pub const SEED_VAULT : &[u8] = b"vault";
+pub const SEED_GAME: &[u8] = b"game";
+pub const SEED_NFT_AUTHORITY: &[u8] = b"nft_authority";
 
 declare_id!("5uztqw9ZhJ951kFm18eGZzFmCTJpG3LGzfvKcXSWfuUp");
 
@@ -143,7 +146,7 @@ pub mod pixelana {
     pub fn select_winner(ctx: Context<SelectWinner>, winning_drawing: u8) -> Result<()> {
         let game = &mut ctx.accounts.game;
         game.winning_drawing = game.drawings[winning_drawing as usize].clone();
-        game.status = GameState::Completed;
+        game.status = GameState::WaitForMinting;
         // Mint NFT logic goes here
         Ok(())
     }
@@ -151,6 +154,7 @@ pub mod pixelana {
     pub fn mint_nft(ctx: Context<MintNft>) -> Result<()> {
         msg!("Mint nft with meta data extension and additional meta data");
 
+        let game = &mut ctx.accounts.game;
         let space = match ExtensionType::try_calculate_account_len::<Mint>(&[ExtensionType::MetadataPointer]) {
             Ok(space) => space,
             Err(_) => return err!(GameError::InvalidMintAccountSpace)
@@ -173,7 +177,7 @@ pub mod pixelana {
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),
                 system_program::CreateAccount {
-                    from: ctx.accounts.signer.to_account_info(),
+                    from: ctx.accounts.host.to_account_info(),
                     to: ctx.accounts.mint.to_account_info(),
                 },
             ),
@@ -244,9 +248,9 @@ pub mod pixelana {
             ctx.accounts.nft_authority.to_account_info().key,
             ctx.accounts.mint.key,
             ctx.accounts.nft_authority.to_account_info().key,
-            "Beaver".to_string(),
-            "BVA".to_string(),
-            "https://arweave.net/MHK3Iopy0GgvDoM7LkkiAdg7pQqExuuWvedApCnzfj0".to_string(),
+            game.story.clone(),
+            "PixeLana".to_string(),
+            game.winning_drawing.drawing_ref.clone()
         );
 
         invoke_signed(
@@ -276,9 +280,9 @@ pub mod pixelana {
             CpiContext::new(
             ctx.accounts.associated_token_program.to_account_info(),
             associated_token::Create {
-                payer: ctx.accounts.signer.to_account_info(),
+                payer: ctx.accounts.host.to_account_info(),
                 associated_token: ctx.accounts.token_account.to_account_info(),
-                authority: ctx.accounts.signer.to_account_info(),
+                authority: ctx.accounts.host.to_account_info(),
                 mint: ctx.accounts.mint.to_account_info(),
                 system_program: ctx.accounts.system_program.to_account_info(),
                 token_program: ctx.accounts.token_program.to_account_info(),
@@ -313,6 +317,8 @@ pub mod pixelana {
             None,
         )?;
 
+        game.status = GameState::Completed;
+
         Ok(())
     }
 
@@ -326,9 +332,9 @@ pub mod pixelana {
 #[derive(Accounts)]
 pub struct InitializeVault<'info> {
     #[account(
-        init,
+        init_if_needed,
         payer = creator,
-        seeds = [b"vault"],
+        seeds = [SEED_VAULT],
         bump,
         space = 8 + 1 + 8// std::mem::size_of::<Vault>(), // Adjust space according to your needs
     )]
@@ -342,7 +348,7 @@ pub struct InitializeVault<'info> {
 pub struct DepositToVault<'info> {
     #[account(
         mut,
-        seeds = [b"vault"],
+        seeds = [SEED_VAULT],
         bump,
     )]
     pub vault: Account<'info, Vault>,
@@ -422,7 +428,7 @@ pub struct InitializePlayer<'info> {
 
     #[account(
         init_if_needed,
-        seeds = [b"player", payer.key.as_ref()],
+        seeds = [SEED_PLAYER, payer.key.as_ref()],
         bump,
         payer = payer,
         space = 8 + 32 + 1 + 8 + 8// std::mem::size_of::<Player>(), // Adjust space according to your needs
@@ -473,7 +479,7 @@ pub struct StartGame<'info> {
 
 #[derive(Accounts)]
 pub struct SubmitStory<'info> {
-    #[account(mut)]
+    #[account(mut, has_one = host)]
     pub game: Account<'info, Game>,
     pub host: Signer<'info>,
 }
@@ -522,25 +528,25 @@ pub struct Drawing {
 #[derive(Accounts)]
 pub struct MintNft<'info> {
     #[account(mut)]
-    pub signer: Signer<'info>,
+    pub host: Signer<'info>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token2022>,
+    /// CHECK: We will create this one for the user
     #[account(mut)]
     pub token_account: AccountInfo<'info>,
-    #[account(mut)]
+    #[account(mut, has_one = host)]
     pub game: Account<'info, Game>,
     pub mint: Signer<'info>,
     pub rent: Sysvar<'info, Rent>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     #[account(  
         init_if_needed,
-        seeds = [b"nft_authority".as_ref()],
+        seeds = [SEED_NFT_AUTHORITY],
         bump,
         space = 8,
-        payer = signer,
+        payer = host,
     )]
     pub nft_authority: Account<'info, NftAuthority >
-  
 }
 
 #[account]
@@ -553,6 +559,7 @@ pub enum GameState {
     WaitingForStory,
     WaitingForDrawings,
     SelectingWinner,
+    WaitForMinting,
     Completed,
 }
 

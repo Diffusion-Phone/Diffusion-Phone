@@ -225,5 +225,26 @@ describe("anchor", () => {
       expect(game.drawings.length).to.equal(2);
       expect(game.status).to.equal({selectingWinner: {}})
     });
+    
+    it('host: select winner', async () => {
+      // signed by host
+      const winnerIndex = 0;
+      await program.methods.selectWinner(winnerIndex).accounts({
+        game: gamePda,
+        host: host.publicKey
+      }).rpc()
+      const game = await program.account.game.fetch(gamePda);
+      expect(game.status).to.equal({waitForMinting: {}})
+    });
+
+    it('host: mintNFT', async () => {
+      // signed by host
+      const winnerIndex = 0;
+      await program.methods.mintNft().accounts({
+        game: gamePda,
+      }).rpc()
+      const game = await program.account.game.fetch(gamePda);
+      expect(game.status).to.equal({waitForMinting: {}})
+    });
   })
 });
