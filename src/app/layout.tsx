@@ -8,6 +8,7 @@ import { GameStateProvider } from "@/contexts/GameStateProvider";
 import { WorkspaceProvider } from "@/contexts/WorkspaceProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Head from "next/head";
+import Providers from "@/contexts/Providers";
 
 
 // const inter = Inter({ subsets: ["latin"] });
@@ -35,16 +36,9 @@ export default function RootLayout({
           objectFit="cover" // This makes the image cover the available space
           quality={100}
         />
-        <Web3ContextProvider>
-          {/* TODO: should remove socketauth provider */}
-          <SocketAuthProvider>
-            <WorkspaceProvider>
-              <QueryClientProvider client={client}>
-                <GameStateProvider>{children}</GameStateProvider>
-              </QueryClientProvider>
-            </WorkspaceProvider>
-          </SocketAuthProvider>
-        </Web3ContextProvider>
+        <Providers>
+          {children}
+        </Providers>
         <Toaster />
       </body>
     </html>
