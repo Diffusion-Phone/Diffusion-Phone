@@ -5,6 +5,12 @@ import { Program } from "@coral-xyz/anchor";
 import { Keypair, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { Pixelana } from "../target/types/pixelana";
 import { expect } from "chai";
+import {
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID,
+  getAssociatedTokenAddressSync,
+} from "@solana/spl-token";
+
 
 function generateRandomString(length) {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -43,13 +49,13 @@ describe("anchor", () => {
   }
 
 
-  // Could only run once
   before('init vault', async () => {
-    // const initVault = await program.methods.initializeVault().accounts({
-    //   creator: host.publicKey,
-    //   vault: vaultPda
-    // }).rpc();
-    // console.log("init vault tx:", initVault);
+    // Could only run once
+    const initVault = await program.methods.initializeVault().accounts({
+      creator: host.publicKey,
+      vault: vaultPda
+    }).rpc();
+    console.log("init vault tx:", initVault);
     await program.account.vault.fetch(vaultPda).then((vault) => {
       console.log("vault:", vault)
     })
@@ -71,14 +77,16 @@ describe("anchor", () => {
       depositor: hostPub,
       vault: vaultPda,
       player: playerPda
-    }).rpc();
+    }).rpc({
+      maxRetries: 3
+    });
 
     console.log("deposited to vault tx:", hostDeposit);
     const playerAfterDeposit = await program.account.player.fetch(playerPda);
 
     expect(playerAfterDeposit.balance.toNumber()).to.equal(10000000);
     expect(playerAfterDeposit.currentGame).to.equal(null);
-    expect(playerAfterDeposit.games).to.equal(new anchor.BN(0));
+    expect(playerAfterDeposit.games.toNumber()).to.equal(0);
   });
 
   it('reinit host player', async () => {
@@ -92,7 +100,7 @@ describe("anchor", () => {
     const player = await program.account.player.fetch(playerPda);
     expect(player.balance.toNumber()).to.equal(10000000);
     expect(player.currentGame).to.equal(null);
-    expect(player.games).to.equal(new anchor.BN(0));
+    expect(player.games.toNumber()).to.equal(0);
   });
 
   //test it once
@@ -113,10 +121,10 @@ describe("anchor", () => {
     console.log("init game tx: ", game)
 
     const player = await program.account.player.fetch(hostPda);
-    expect(player.currentGame).to.equal(gamePda); 
+    expect(player.currentGame.toBase58()).to.equal(gamePda.toBase58()); 
     const gameState = await program.account.game.fetch(gamePda)
     expect(gameState.participants.length).to.equal(0);
-    expect(gameState.status).equals({waitingForParticipants: {}})
+    expect(gameState.status).to.eql({waitingForParticipants: {}})
   })
 
   describe("a whole game", () => {
@@ -145,10 +153,10 @@ describe("anchor", () => {
       console.log("player 1 join game tx: ", player1JoinGame)
 
       const player1 = await program.account.player.fetch(playerPda);
-      expect(player1.currentGame).to.equal(gamePda);
+      expect(player1.currentGame.toBase58()).to.equal(gamePda.toBase58());
       const gameState = await program.account.game.fetch(gamePda)
       expect(gameState.participants.length).to.equal(1);
-      expect(gameState.status).equals({WaitingForParticipants: {}})
+      expect(gameState.status).to.eql({waitingForParticipants: {}})
     })
 
     it('init & join player: 2', async () => {
@@ -164,10 +172,10 @@ describe("anchor", () => {
 
       console.log("player 2 join game tx: ", player2JoinGame)
       const player2 = await program.account.player.fetch(playerPda);
-      expect(player2.currentGame).to.equal(gamePda);
+      expect(player2.currentGame.toBase58()).to.equal(gamePda.toBase58());
       const gameState = await program.account.game.fetch(gamePda);
       expect(gameState.participants.length).to.equal(2);
-      expect(gameState.status).equals({WaitingForParticipants: {}})
+      expect(gameState.status).to.eql({waitingForParticipants: {}})
     })
 
       // Initialize the game
@@ -180,7 +188,7 @@ describe("anchor", () => {
       }).rpc() 
       const gameState = await program.account.game.fetch(gamePda)
       expect(gameState.participants.length).to.equal(2);
-      expect(gameState.status).equals({waitingForStory: {}})
+      expect(gameState.status).to.eql({waitingForStory: {}})
     })
 
     it('submit story', async () => {
@@ -193,7 +201,7 @@ describe("anchor", () => {
       // Verify the story was submitted
       const game = await program.account.game.fetch(gamePda);
       expect(game.story).to.equal(story);
-      expect(game.status).to.equal({waitingForDrawings: {}})
+      expect(game.status).to.eql({waitingForDrawings: {}})
     });
 
     it('player 1: submit drawing', async () => {
@@ -208,7 +216,7 @@ describe("anchor", () => {
       const game = await program.account.game.fetch(gamePda);
       expect(game.participants.length).to.equal(2);
       expect(game.drawings.length).to.equal(1);
-      expect(game.status).to.equal({waitingForDrawings: {}})
+      expect(game.status).to.eql({waitingForDrawings: {}})
     });
 
     it('player 2: submit drawing', async () => {
@@ -223,28 +231,50 @@ describe("anchor", () => {
       const game = await program.account.game.fetch(gamePda);
       expect(game.participants.length).to.equal(2);
       expect(game.drawings.length).to.equal(2);
-      expect(game.status).to.equal({selectingWinner: {}})
+      expect(game.status).to.eql({selectingWinner: {}})
     });
     
     it('host: select winner', async () => {
       // signed by host
+      // just to verify that the winner is selected
+      const player = await getKeypairFromFile('keypair1.json')
       const winnerIndex = 0;
       await program.methods.selectWinner(winnerIndex).accounts({
         game: gamePda,
         host: host.publicKey
       }).rpc()
       const game = await program.account.game.fetch(gamePda);
-      expect(game.status).to.equal({waitForMinting: {}})
+      expect(game.status).to.eql({waitForMinting: {}})
+      expect(game.winningDrawing).to.eql({participant: player.publicKey, drawingRef: `drawing_${1}`});
     });
 
     it('host: mintNFT', async () => {
       // signed by host
-      const winnerIndex = 0;
-      await program.methods.mintNft().accounts({
+      const player = await getKeypairFromFile('keypair1.json')
+      let mint = new Keypair();
+      const destinationTokenAccount = getAssociatedTokenAddressSync(
+        mint.publicKey,
+        player.publicKey,
+        false,
+        TOKEN_2022_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+      )
+
+      const nft_authority = await PublicKey.findProgramAddressSync(([Buffer.from("nft_authority")]), program.programId)
+      const tx = await program.methods.mintNft().accounts({
         game: gamePda,
-      }).rpc()
+        systemProgram: anchor.web3.SystemProgram.programId,
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        tokenAccount: destinationTokenAccount,
+        mint: mint.publicKey,
+        nftAuthority: nft_authority[0],
+        host: host.publicKey
+      }).signers([mint]).rpc()
+
+      console.log("minted nft tx: ", tx)
       const game = await program.account.game.fetch(gamePda);
-      expect(game.status).to.equal({waitForMinting: {}})
+      expect(game.status).to.eql({completed: {}})
     });
   })
 });
