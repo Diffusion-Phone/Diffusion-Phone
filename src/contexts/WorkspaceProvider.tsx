@@ -1,3 +1,4 @@
+'use client'
 import { AnchorWallet, useAnchorWallet, useConnection } from "@solana/wallet-adapter-react"
 import { AnchorProvider, Program, setProvider } from "@coral-xyz/anchor"
 import { programId } from "@/lib/constant"
