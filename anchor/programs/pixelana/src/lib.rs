@@ -11,7 +11,7 @@ pub const SEED_VAULT : &[u8] = b"vault";
 pub const SEED_GAME: &[u8] = b"game";
 pub const SEED_NFT_AUTHORITY: &[u8] = b"nft_authority";
 
-declare_id!("5uztqw9ZhJ951kFm18eGZzFmCTJpG3LGzfvKcXSWfuUp");
+declare_id!("3pWVQatHK7c1f2ohgeW9baJuSh7JccmWgHSpkLVym973");
 
 #[program]
 pub mod pixelana {
@@ -250,6 +250,7 @@ pub mod pixelana {
             ctx.accounts.nft_authority.to_account_info().key,
             game.story.clone(),
             "PixeLana".to_string(),
+            // a real url
             game.winning_drawing.drawing_ref.clone()
         );
 
@@ -536,6 +537,7 @@ pub struct MintNft<'info> {
     pub token_account: AccountInfo<'info>,
     #[account(mut, has_one = host)]
     pub game: Account<'info, Game>,
+    #[account(mut)]
     pub mint: Signer<'info>,
     pub rent: Sysvar<'info, Rent>,
     pub associated_token_program: Program<'info, AssociatedToken>,

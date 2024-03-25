@@ -9,7 +9,12 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { programId } from "@/lib/constant";
 import { AnchorProvider, Program } from "@coral-xyz/anchor";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
+import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
+import {
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID,
+  getAssociatedTokenAddressSync,
+} from "@solana/spl-token";
 
 //TODO: add a parameter: isHost to make sure he could access the host actions
 export function useAnchorProgram() {
@@ -279,7 +284,83 @@ export async function selectWinner({
   provider: AnchorProvider;
   program: Program<Pixelana>;
   gamePda: PublicKey;
-  winner: string;
+  winner: number;
 }) {
-  return;
+  if (!provider || !program) {
+    throw new Error("Wallet not connected");
+  }
+  if (!gamePda) {
+    throw new Error("Game not initialized");
+  }
+  const payer = provider.wallet;
+  const [playerPda, _playerBump] = PublicKey.findProgramAddressSync(
+    [Buffer.from("player"), payer.publicKey.toBuffer()],
+    program.programId
+  );
+  return await program.methods
+    .selectWinner(winner)
+    .accounts({
+      game: gamePda,
+      host: playerPda,
+    })
+    .rpc()
+    .then(async (res) => {
+      console.log("select winner tx:", res);
+      //TODO: change to our modal model
+    })
+    .catch((err) => {
+      console.error("select winner error:", err);
+    });
+}
+
+export async function mintNft({
+  provider,
+  program,
+  gamePda,
+  winner,
+}: {
+  provider: AnchorProvider;
+  program: Program<Pixelana>;
+  gamePda: PublicKey;
+  winner: { participant: PublicKey; drawingRef: string };
+}) {
+  if (!provider || !program) {
+    throw new Error("Wallet not connected");
+  }
+  if (!gamePda) {
+    throw new Error("Game not initialized");
+  }
+
+  let mint = new Keypair();
+  const destinationTokenAccount = getAssociatedTokenAddressSync(
+    mint.publicKey,
+    winner.participant,
+    false,
+    TOKEN_2022_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID
+  );
+
+  const nft_authority = await PublicKey.findProgramAddressSync(
+    [Buffer.from("nft_authority")],
+    program.programId
+  );
+  return await program.methods
+    .mintNft()
+    .accounts({
+      game: gamePda,
+      systemProgram: anchor.web3.SystemProgram.programId,
+      tokenProgram: TOKEN_2022_PROGRAM_ID,
+      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      tokenAccount: destinationTokenAccount,
+      mint: mint.publicKey,
+      nftAuthority: nft_authority[0],
+      host: provider.wallet.publicKey,
+    })
+    .rpc()
+    .then(async (res) => {
+      console.log("mint nft tx:", res);
+    })
+    .catch((err) => {
+      console.error("mint nft error:", err);
+    });
 }
