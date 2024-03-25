@@ -2,10 +2,13 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import "./globals.css";
 import { Web3ContextProvider } from "@/contexts/ContextProvider";
-import Head from "next/head";
 import { SocketAuthProvider } from "@/contexts/SocketAuthContext";
 import { Toaster } from "sonner";
 import { GameStateProvider } from "@/contexts/GameStateProvider";
+import { WorkspaceProvider } from "@/contexts/WorkspaceProvider";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import Head from "next/head";
+
 
 // const inter = Inter({ subsets: ["latin"] });
 
@@ -13,6 +16,8 @@ export const metadata: Metadata = {
   title: "PixeLana",
   description: "prompt creativity, mint memories",
 };
+
+const client = new QueryClient()
 
 export default function RootLayout({
   children,
@@ -31,8 +36,13 @@ export default function RootLayout({
           quality={100}
         />
         <Web3ContextProvider>
+          {/* TODO: should remove socketauth provider */}
           <SocketAuthProvider>
-            <GameStateProvider>{children}</GameStateProvider>
+            <WorkspaceProvider>
+              <QueryClientProvider client={client}>
+                <GameStateProvider>{children}</GameStateProvider>
+              </QueryClientProvider>
+            </WorkspaceProvider>
           </SocketAuthProvider>
         </Web3ContextProvider>
         <Toaster />

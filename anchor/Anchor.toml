@@ -1,0 +1,18 @@
+[toolchain]
+
+[features]
+seeds = false
+skip-lint = false
+
+[registry]
+url = "https://api.apr.dev"
+
+[programs.devnet]
+pixelana = "5uztqw9ZhJ951kFm18eGZzFmCTJpG3LGzfvKcXSWfuUp"
+
+[provider]
+cluster = "devnet"
+wallet = "/Users/frank/.config/solana/id.json"
+
+[scripts]
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"

@@ -13,6 +13,7 @@ import { toast } from "sonner";
 
 interface GameState {
   players: Array<User>;
+  gamePda: string;
   isHost: boolean;
   prompt: string;
   uploadedImgs: Array<[string, string]>;
@@ -28,6 +29,7 @@ interface GameState {
 
 const defaultGameState: GameState = {
   players: [],
+  gamePda: "",
   isHost: false,
   prompt: "",
   uploadedImgs: [],
@@ -42,6 +44,7 @@ export const useGameState = () => useContext(GameStateContext);
 export const GameStateProvider: FC<{ children: ReactNode }> = ({
   children,
 }) => {
+  // TODO: listen to the game state change from the game account, remove all socket thing
   const [gameState, setGameState] = useState<GameState>(defaultGameState);
   const { socket } = useSocketAuth();
 
