@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useWorkspace } from "@/contexts/WorkspaceProvider";
 import { useGameState } from "@/contexts/GameStateProvider";
@@ -17,7 +17,7 @@ import {
 } from "@solana/spl-token";
 
 //TODO: add a parameter: isHost to make sure he could access the host actions
-export const useAction = (host= false) => {
+export const useAction = (host = false) => {
   const { socket } = useSocketAuth();
   const { isHost, gameState } = useGameState();
 
@@ -29,7 +29,7 @@ export const useAction = (host= false) => {
 
   const startGame = useCallback(() => {
     if (socket) {
-      console.log(isHost,gameState) 
+      console.log(isHost, gameState);
       socket.emit("startGame");
     }
   }, [socket]);
@@ -46,7 +46,7 @@ export const useAction = (host= false) => {
         socket.emit("submitPrompt", playerId, prompt);
       }
     },
-    [socket],
+    [socket]
   );
 
   const submitDrawing = useCallback(
@@ -55,7 +55,7 @@ export const useAction = (host= false) => {
         socket.emit("submitDraw", playerId, drawing);
       }
     },
-    [socket],
+    [socket]
   );
 
   const likeDraw = useCallback(
@@ -64,7 +64,7 @@ export const useAction = (host= false) => {
         socket.emit("likeDrawing", playerId, socketId);
       }
     },
-    [socket],
+    [socket]
   );
 
   const backRoom = useCallback(() => {
@@ -84,14 +84,14 @@ export const useAction = (host= false) => {
   };
 };
 
-
 //TODO: add a parameter: isHost to make sure he could access the host actions
 export function useAnchorProgram() {
-  const { gameState, isHost, gamePda } = useGameState();
+  const { gamePda } = useWorkspace(); 
+  const { gameState, isHost, } = useGameState();
   const {} = useWallet();
   const { provider, program } = useWorkspace();
 
-  if (!provider || !program) {
+  if (!provider || !program || !gamePda) {
     throw new Error("Workspace not initialized");
   }
 
@@ -113,6 +113,43 @@ export function useAnchorProgram() {
 
   //   }).rpc()
   // });
+}
+
+export async function initializeGame({
+  provider,
+  program,
+  roomId
+}: {
+  provider: AnchorProvider;
+  program: Program<Pixelana>;
+  roomId: string;
+}) {
+  if (!provider || !program) {
+    throw new Error("Wallet not connected");
+  }
+  const payer = provider.wallet;
+  const [hostPda, hostBump] = PublicKey.findProgramAddressSync(
+    [Buffer.from("player"), payer.publicKey.toBuffer()],
+    program.programId
+  );
+  const [gamePda, gameBump] = PublicKey.findProgramAddressSync(
+    [Buffer.from("game"), payer.publicKey.toBuffer()],
+    program.programId
+  );
+  await program.methods
+    .initializeGame(roomId)
+    .accounts({
+      payer: payer.publicKey,
+      game: gamePda,
+      host: hostPda
+    })
+    .rpc()
+    .then((res) => {
+      console.log("init game tx:", res);
+    })
+    .catch((err) => {
+      console.error("init game error:", err);
+    });
 }
 
 export async function initialUser({
@@ -143,6 +180,44 @@ export async function initialUser({
     })
     .catch((err) => {
       console.error("init player error:", err);
+    });
+}
+
+export async function joinGame({
+  provider,
+  program,
+  roomId,
+}: {
+  provider: AnchorProvider;
+  program: Program<Pixelana>;
+  roomId: string;
+}) {
+  if (!provider || !program) {
+    throw new Error("Wallet not connected");
+  }
+  const payer = provider.wallet;
+  const [gamePda, gameBump] = PublicKey.findProgramAddressSync(
+    [Buffer.from("game"), Buffer.from(roomId)],
+    program.programId
+  );
+  const [playerPda, playerBump] = PublicKey.findProgramAddressSync(
+    [Buffer.from("player"), payer.publicKey.toBuffer()],
+    program.programId
+  );
+
+  await program.methods
+    .joinGame()
+    .accounts({
+      payer: payer.publicKey,
+      game: gamePda,
+      player: playerPda,
+    })
+    .rpc()
+    .then((res) => {
+      console.log("join game tx:", res);
+    })
+    .catch((err) => {
+      console.error("join game error:", err);
     });
 }
 

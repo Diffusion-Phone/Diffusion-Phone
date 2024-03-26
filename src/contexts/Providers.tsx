@@ -49,11 +49,11 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <Web3ContextProvider>
       {/* TODO: should remove socketauth provider */}
       <SocketAuthProvider>
-        {/* <WorkspaceProvider> */}
+        <WorkspaceProvider>
           <QueryClientProvider client={queryClient}>
             <GameStateProvider>{children}</GameStateProvider>
           </QueryClientProvider>
-        {/* </WorkspaceProvider> */}
+        </WorkspaceProvider>
       </SocketAuthProvider>
     </Web3ContextProvider>
   )
