@@ -7,6 +7,41 @@ import { useSocketAuth } from "@/contexts/SocketAuthContext";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "./ui/input";
+
+function JoinRoomDialog({onClick}: { onClick: (roomId: string) => void}) {
+  const [roomId, setRoomId] = useState("");
+  return (
+    <Dialog >
+      <DialogTrigger asChild>
+      <Button
+        className="ring-offset-3 flex h-[80px] w-[200px] items-center justify-center rounded-xl text-[32px] italic ring-8 ring-orange-600 ring-offset-black transition ease-in-out hover:-translate-y-1 hover:scale-110 hover:bg-[#f7d726]"
+      >
+        Join!
+      </Button>
+      </DialogTrigger>
+      <DialogContent className="bg-secondary justify-center flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="font-sans text-white">
+            Enter The Room Id to Join 
+          </DialogTitle>
+        </DialogHeader>
+        <Input value={roomId} onInput={(e) => {setRoomId(e.currentTarget.value)}}/>
+        <Button className="rounded-xl italic ring-[5px] ring-orange-600 hover:bg-[#f7d726] text-shadow-md" onClick={() => onClick(roomId)}>
+          Submit
+        </Button>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 const avatars = [
   "life-in-the-balance.png",
@@ -153,7 +188,18 @@ export function AvatarPicker() {
           </svg>
         </div>
       </div>
+      <div className="items-center justify-center flex flex-row gap-10">
       <Button
+        className="ring-offset-3 flex h-[80px] w-[200px] items-center justify-center rounded-xl text-[32px] italic ring-8 ring-orange-600 ring-offset-black transition ease-in-out hover:-translate-y-1 hover:scale-110 hover:bg-[#f7d726]"
+        onClick={() => connectSocket({name:name, avatar:`/avatars/${avatars[chosenIndex]}`, pubKey: wallet.publicKey?.toBase58()!})}
+      >
+        New Game!
+      </Button>
+      <JoinRoomDialog onClick={(roomId) => {
+        // setGameId(roomId);
+        connectSocket({name:name, avatar:`/avatars/${avatars[chosenIndex]}`, pubKey: wallet.publicKey?.toBase58()!, roomId})}} />
+      </div>
+      {/* <Button
         className="ring-offset-3 flex h-[100px] w-[500px] items-center justify-center rounded-xl text-[64px] italic ring-8 ring-orange-600 ring-offset-black transition ease-in-out hover:-translate-y-1 hover:scale-110 hover:bg-[#f7d726]"
         onClick={() => connectSocket({name:name, avatar:`/avatars/${avatars[chosenIndex]}`, pubKey: wallet.publicKey?.toBase58()!})}
       >
@@ -175,7 +221,7 @@ export function AvatarPicker() {
           </svg>
         </div>
         Start!
-      </Button>
+      </Button> */}
     </div>
 </div>
   );
