@@ -11,8 +11,6 @@ import Head from "next/head";
 import Providers from "@/contexts/Providers";
 
 
-// const inter = Inter({ subsets: ["latin"] });
-
 export const metadata: Metadata = {
   title: "PixeLana",
   description: "prompt creativity, mint memories",
@@ -27,15 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="bg-gradient-to-b from-pink-500 to-purple-500">
-        <Image
-          src={"/textura-background.png"}
-          className="z-0"
-          alt="bg-img"
-          layout="fill"
-          objectFit="cover" // This makes the image cover the available space
-          quality={100}
-        />
+      <body> 
         <Providers>
           {children}
         </Providers>

@@ -20,8 +20,8 @@ const config = {
     },
     extend: {
       fontFamily: {
-        sans: ['"Varela Round"', "sans-serif"],
-        customs: ['"Among Us"', '"Varela Round"']
+        sans: ['Afronaut'],
+        serif: ['Romie'],
       },
       colors: {
         border: "hsl(var(--border))",
