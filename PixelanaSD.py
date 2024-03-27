@@ -64,6 +64,18 @@ class Model:
         self.pipeline = DiffusionPipeline.from_pretrained("stabilityai/sdxl-turbo", torch_dtype=torch.bfloat16).to("cuda")
 
 
+        # We execute a blank inference since there are objects that are lazily loaded that
+        # we want to start loading before an actual user query
+        # https://github.com/modal-labs/turbo-art/blob/main/turbo_art.py
+        self.pipeline(
+            "blank",
+            image=Image.new("RGB", (800, 1280), (255, 255, 255)),
+            num_inference_steps=1,
+            strength=1,
+            guidance_scale=0.0,
+            seed=42,
+        )
+
     # 
     def _inference(self, user_prompt: str = "Solana", num_inference_steps: int = 4):
         if num_inference_steps > 10: num_inference_steps = 10
@@ -95,7 +107,7 @@ class Model:
 
 
 @stub.local_entrypoint()
-def main(user_prompt: str = "Solana", num_inference_steps: int = 4):
+def main(user_prompt, num_inference_steps):
     image_bytes = Model().inference.remote(user_prompt, num_inference_steps)
 
     dir = Path("/tmp/stable-diffusion-xl-turbo")
@@ -132,8 +144,8 @@ def app():
     with open("/assets/index.html", "w") as f:
         html = template.render(
             inference_url=Model.web_inference.web_url,
-            model_name="Stable Diffusion XL Turbo",
-            default_prompt="A cinematic shot of a baby raccoon wearing an intricate italian priest robe.",
+            model_name="PixeLanaSD",
+            default_prompt="Patrick Star hitting the dab",
         )
         f.write(html)
 
