@@ -61,11 +61,13 @@ class Model:
     # Load the model into memory
     @enter()
     def enter(self):
-        self.pipeline = StableDiffusionXLPipeline.from_pretrained("stabilityai/sdxl-turbo", torch_dtype=torch.bfloat16).to("cuda")
+        self.pipeline = DiffusionPipeline.from_pretrained("stabilityai/sdxl-turbo", torch_dtype=torch.bfloat16).to("cuda")
 
 
     # 
-    def _inference(self, user_prompt: str, num_inference_steps: int):
+    def _inference(self, user_prompt: str = "Solana", num_inference_steps: int = 4):
+        if num_inference_steps > 10: num_inference_steps = 10
+        
         generated_image = self.pipeline(
             prompt = user_prompt,
             num_inference_steps=num_inference_steps,
@@ -81,7 +83,7 @@ class Model:
     #
     @method()
     def inference(self, user_prompt: str, num_inference_steps: int):
-        return self._inference(user_prompt, num_inference_steps)
+        return self._inference(user_prompt, num_inference_steps).getvalue()
 
     
     @web_endpoint()
@@ -93,8 +95,8 @@ class Model:
 
 
 @stub.local_entrypoint()
-def main(prompt: str):
-    image_bytes = Model().inference.remote(prompt)
+def main(user_prompt: str = "Solana", num_inference_steps: int = 4):
+    image_bytes = Model().inference.remote(user_prompt, num_inference_steps)
 
     dir = Path("/tmp/stable-diffusion-xl-turbo")
     if not dir.exists(): dir.mkdir(exist_ok=True, parents=True)
@@ -105,8 +107,7 @@ def main(prompt: str):
         f.write(image_bytes)
 
 
-frontend_path = Path(__file__).parent / "frontend"
-
+frontend_path = Path(__file__).parent / "test-modal"
 web_image = Image.debian_slim().pip_install("jinja2")
 
 
@@ -131,7 +132,7 @@ def app():
     with open("/assets/index.html", "w") as f:
         html = template.render(
             inference_url=Model.web_inference.web_url,
-            model_name="Stable Diffusion XL",
+            model_name="Stable Diffusion XL Turbo",
             default_prompt="A cinematic shot of a baby raccoon wearing an intricate italian priest robe.",
         )
         f.write(html)
