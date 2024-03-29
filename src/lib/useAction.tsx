@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useWorkspace } from "@/contexts/WorkspaceProvider";
 import { useGameState } from "@/contexts/GameStateProvider";
@@ -86,8 +86,8 @@ export const useAction = (host = false) => {
 
 //TODO: add a parameter: isHost to make sure he could access the host actions
 export function useAnchorProgram() {
-  const { gamePda } = useWorkspace(); 
-  const { gameState, isHost, } = useGameState();
+  const { gamePda } = useWorkspace();
+  const { gameState, isHost } = useGameState();
   const {} = useWallet();
   const { provider, program } = useWorkspace();
 
@@ -123,9 +123,10 @@ export function useAnchorProgram() {
     mutationFn: ({ winner }: { winner: number }) =>
       selectWinner({ provider, program, gamePda, winner }),
   });
-  
+
   const mutateGenerateImage = useMutation({
-    mutationFn: (prompt: string) => generateImage({ provider, program, gamePda, prompt}),
+    mutationFn: (prompt: string) =>
+      generateImage({ provider, program, gamePda, prompt }),
   });
 
   const mutateMintNft = useMutation({
@@ -141,14 +142,14 @@ export function useAnchorProgram() {
     mutateSubmitImage,
     mutateSelectWinner,
     mutateGenerateImage,
-    mutateMintNft
-  }
+    mutateMintNft,
+  };
 }
 
 export async function initializeGame({
   provider,
   program,
-  roomId
+  roomId,
 }: {
   provider: AnchorProvider;
   program: Program<Pixelana>;
@@ -171,7 +172,7 @@ export async function initializeGame({
     .accounts({
       payer: payer.publicKey,
       game: gamePda,
-      host: hostPda
+      host: hostPda,
     })
     .rpc()
     .then((res) => {
@@ -185,9 +186,11 @@ export async function initializeGame({
 export async function initialUser({
   provider,
   program,
+  avatar,
 }: {
   provider: AnchorProvider;
   program: Program<Pixelana>;
+  avatar: string;
 }) {
   if (!provider || !program) {
     throw new Error("Wallet not connected");
@@ -197,9 +200,11 @@ export async function initialUser({
     [Buffer.from("player"), payer.publicKey.toBuffer()],
     program.programId
   );
-
+  const playerArg: Record<string, unknown> = {};
+  playerArg[avatar] = {};
   const player = await program.methods
-    .initializePlayer()
+    // TODO: fix the type here
+    .initializePlayer(playerArg as any)
     .accounts({
       payer: payer.publicKey,
       player: playerPda,
@@ -211,7 +216,7 @@ export async function initialUser({
     .catch((err) => {
       console.error("init player error:", err);
     });
-    return playerPda
+  return playerPda;
 }
 
 export async function joinGame({
@@ -350,7 +355,7 @@ export async function submitStory({
     program.programId
   );
 
-  await program.methods
+  program.methods
     .submitStory(story)
     .accounts({
       game: gamePda,
@@ -388,7 +393,7 @@ export async function submitImage({
     program.programId
   );
 
-  await program.methods
+  return program.methods
     .submitDrawing(image)
     .accounts({
       game: gamePda,
@@ -430,21 +435,18 @@ export async function generateImage({
     program.programId
   );
 
-  return await program.methods
+  return program.methods
     .deductBalance(new anchor.BN(1 * LAMPORTS_PER_SOL))
     .accounts({
       player: playerPda,
     })
     .rpc()
-    .then(async (res) => {
+    .then((res) => {
       console.log("generate prompt tx:", res);
       //TODO: change to our modal model
-      return await fetch(
-        "https://api.openai.com/v1/engines/davinci/completions"
-      ).then((res) => {
-        return res.json();
-      });
+      return fetch("https://api.openai.com/v1/engines/davinci/completions");
     })
+    .then((res) => res.blob())
     .catch((err) => {
       console.error("generate prompt error:", err);
     });
@@ -472,7 +474,7 @@ export async function selectWinner({
     [Buffer.from("player"), payer.publicKey.toBuffer()],
     program.programId
   );
-  return await program.methods
+  return program.methods
     .selectWinner(winner)
     .accounts({
       game: gamePda,
@@ -519,7 +521,8 @@ export async function mintNft({
     [Buffer.from("nft_authority")],
     program.programId
   );
-  return await program.methods
+
+  return program.methods
     .mintNft()
     .accounts({
       game: gamePda,
