@@ -1,4 +1,4 @@
-"use client";
+'use client';
 import {
   AnchorWallet,
   useAnchorWallet,
@@ -8,7 +8,7 @@ import { AnchorProvider, Program, setProvider } from "@coral-xyz/anchor";
 import { programId } from "@/lib/constant";
 // import IDL from "../../anchor/target/idl/pixelana.json"
 import { Pixelana, IDL } from "../../anchor/target/types/pixelana";
-import { joinGame as anchorJoinGame, initializeGame} from "@/lib/useAction";
+import { joinGame as anchorJoinGame, initializeGame, initialUser} from "@/lib/useAction";
 import {
   createContext,
   useCallback,
@@ -18,22 +18,26 @@ import {
 } from "react";
 import { PublicKey } from "@solana/web3.js";
 import { generateRandomString } from "@/lib/utils";
+import { toast } from "sonner";
 
 // Define the structure of the Program context state
 type WorkspaceProvider = {
   program: Program<Pixelana> | null;
   provider: AnchorProvider | null;
   gamePda?: PublicKey;
-  joinGame: (roomId: string) => void;
-  initGame: () => void;
+  playerPda?: PublicKey;
+  joinGame: (roomId: string) => Promise<void>;
+  initGame: () => Promise<void>;
+  initPlayer: () => Promise<void>;
 };
 
 // Create the context with default values
 const WorkspaceContext = createContext<WorkspaceProvider>({
   program: null,
   provider: null,
-  joinGame: (roomId: string) => {},
-  initGame: () => {}
+  joinGame: async (roomId: string) => {},
+  initGame: async () => {},
+  initPlayer: async () => {},
 });
 
 // Custom hook to use the Program context
@@ -52,6 +56,7 @@ export const WorkspaceProvider = ({
   const [program, setProgram] = useState<Program<Pixelana> | null>(null);
   const [provider, setProviderInner] = useState<AnchorProvider | null>(null);
   const [gamePda, setGamePda] = useState<PublicKey>();
+  const [playerPda, setPlayerPda] = useState<PublicKey>();
 
   // Anchor program setup
   const setup = useCallback(async () => {
@@ -88,8 +93,13 @@ export const WorkspaceProvider = ({
   );
 
   const initGame = useCallback(async () => {
-    if (!program || !provider) {
-      return;
+    if (!program || !provider ) {
+      toast.error("Program or provider not found");
+      return 
+    }
+    if (!playerPda) {
+      toast.error("Player not found");
+      return 
     }
     const roomId = generateRandomString(8);
     const [gamePDA, _] = PublicKey.findProgramAddressSync(
@@ -100,8 +110,19 @@ export const WorkspaceProvider = ({
     setGamePda(gamePDA);
   }, [program, provider]);
 
+  const initPlayer = useCallback(async () => {
+    if (!program || !provider) {
+      toast.error("Program or provider not found");
+      return;
+    }
+    await initialUser({ program, provider}).then((playerPDA) => {
+      setPlayerPda(playerPDA);
+    })
+    
+  }, [program, provider]);
+
   return (
-    <WorkspaceContext.Provider value={{ program, provider, gamePda, joinGame, initGame}}>
+    <WorkspaceContext.Provider value={{ program, provider, gamePda, playerPda, joinGame, initGame, initPlayer}}>
       {children}
     </WorkspaceContext.Provider>
   );

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useWorkspace } from "@/contexts/WorkspaceProvider";
 import { useGameState } from "@/contexts/GameStateProvider";
@@ -16,7 +16,7 @@ import {
   getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
 
-//TODO: add a parameter: isHost to make sure he could access the host actions
+// TODO: Would disable this and switch to useAnchorProgram
 export const useAction = (host = false) => {
   const { socket } = useSocketAuth();
   const { isHost, gameState } = useGameState();
@@ -100,19 +100,49 @@ export function useAnchorProgram() {
     queryFn: () => program.account.game.fetch(gamePda),
   });
 
-  // const intializeUser = useMutation({
-  //   mutationFn: ({playerPub, playerPda}: {playerPub: PublicKey, playerPda: PublicKey}) => program.methods.initializePlayer().accounts({
-  //     player: playerPda,
-  //     payer: playerPub
-  //   }).rpc(),
-  // });
+  const mutateDeposit = useMutation({
+    mutationFn: ({ amount }: { amount: number }) =>
+      depositToVault({ provider, program, amount }),
+  });
 
-  // const intializeGame = useMutation({
-  //   mutationFn: () => program.methods.initializeGame().accounts({
-  //     game: gamePda,
+  const mutateStartGame = useMutation({
+    mutationFn: () => startGame({ provider, program, gamePda }),
+  });
 
-  //   }).rpc()
-  // });
+  const mutateSubmitStory = useMutation({
+    mutationFn: ({ story }: { story: string }) =>
+      submitStory({ provider, program, gamePda, story }),
+  });
+
+  const mutateSubmitImage = useMutation({
+    mutationFn: ({ image }: { image: string }) =>
+      submitImage({ provider, program, gamePda, image }),
+  });
+
+  const mutateSelectWinner = useMutation({
+    mutationFn: ({ winner }: { winner: number }) =>
+      selectWinner({ provider, program, gamePda, winner }),
+  });
+  
+  const mutateGenerateImage = useMutation({
+    mutationFn: (prompt: string) => generateImage({ provider, program, gamePda, prompt}),
+  });
+
+  const mutateMintNft = useMutation({
+    mutationFn: (winner: { participant: PublicKey; drawingRef: string }) =>
+      mintNft({ provider, program, gamePda, winner }),
+  });
+
+  return {
+    getGameAccount,
+    mutateDeposit,
+    mutateStartGame,
+    mutateSubmitStory,
+    mutateSubmitImage,
+    mutateSelectWinner,
+    mutateGenerateImage,
+    mutateMintNft
+  }
 }
 
 export async function initializeGame({
@@ -181,6 +211,7 @@ export async function initialUser({
     .catch((err) => {
       console.error("init player error:", err);
     });
+    return playerPda
 }
 
 export async function joinGame({

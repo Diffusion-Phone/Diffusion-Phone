@@ -40,7 +40,7 @@ describe("anchor", () => {
 
   async function initPlayer(payer: Keypair) {
     const [playerPda, playerBump] = PublicKey.findProgramAddressSync([Buffer.from("player"), payer.publicKey.toBuffer()], program.programId);
-    const tx = await program.methods.initializePlayer().accounts({
+    const tx = await program.methods.initializePlayer({lifeInTheBalance: {}}).accounts({
       payer: payer.publicKey,
       player: playerPda
     }).signers([payer]).rpc()
@@ -64,7 +64,7 @@ describe("anchor", () => {
   it('init player: host', async () => {
     const hostPub = programProvider.wallet.publicKey;
     const [playerPda, playerBump] = PublicKey.findProgramAddressSync([Buffer.from("player"), hostPub.toBuffer()], program.programId);
-    const tx = await program.methods.initializePlayer().accounts({
+    const tx = await program.methods.initializePlayer({lifeInTheBalance: {}}).accounts({
       payer: hostPub,
       player: playerPda
     }).rpc({commitment: "confirmed"});
@@ -85,6 +85,7 @@ describe("anchor", () => {
     const playerAfterDeposit = await program.account.player.fetch(playerPda);
 
     expect(playerAfterDeposit.balance.toNumber()).to.equal(10000000);
+    expect(playerAfterDeposit.avatar).to.eql({lifeInTheBalance: {}}) 
     expect(playerAfterDeposit.currentGame).to.equal(null);
     expect(playerAfterDeposit.games.toNumber()).to.equal(0);
   });
@@ -92,13 +93,15 @@ describe("anchor", () => {
   it('reinit host player', async () => {
     const hostPub = programProvider.wallet.publicKey;
     const [playerPda, playerBump] = PublicKey.findProgramAddressSync([Buffer.from("player"), hostPub.toBuffer()], program.programId);
-    const tx = await program.methods.initializePlayer().accounts({
+    const tx = await program.methods.initializePlayer({ghost: {}}).accounts({
       payer: hostPub,
       player: playerPda
     }).rpc();
     console.log("reinit host success tx(should not do anything):", tx);
     const player = await program.account.player.fetch(playerPda);
     expect(player.balance.toNumber()).to.equal(10000000);
+    // should not reinitialize
+    expect(player.avatar).to.eql({lifeinthebalance: {}}) 
     expect(player.currentGame).to.equal(null);
     expect(player.games.toNumber()).to.equal(0);
   });
@@ -262,6 +265,7 @@ describe("anchor", () => {
 
       const nft_authority = await PublicKey.findProgramAddressSync(([Buffer.from("nft_authority")]), program.programId)
       const tx = await program.methods.mintNft().accounts({
+        host: host.publicKey,
         game: gamePda,
         systemProgram: anchor.web3.SystemProgram.programId,
         tokenProgram: TOKEN_2022_PROGRAM_ID,
@@ -269,7 +273,7 @@ describe("anchor", () => {
         tokenAccount: destinationTokenAccount,
         mint: mint.publicKey,
         nftAuthority: nft_authority[0],
-        host: host.publicKey
+        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
       }).signers([mint]).rpc()
 
       console.log("minted nft tx: ", tx)
