@@ -1,17 +1,16 @@
 'use client'
-
-import { AvatarPicker } from "@/components/customAvatar";
+import { HomePage } from "@/components/homePage";
 import DrawRoom from "@/components/drawPage";
 import EndRoom from "@/components/endPage";
 import NavBar from "@/components/navBar";
 import PromptRoom from "@/components/promptPage";
-import { Button } from "@/components/ui/button";
+// import { Button } from "@/components/ui/button";
 import WaitRoom from "@/components/waitingPage";
 import { useGameState } from "@/contexts/GameStateProvider";
 import { useSocketAuth } from "@/contexts/SocketAuthContext";
-import Image from "next/image";
+// import Image from "next/image";
 import { useCallback, useEffect } from "react";
-import io from "socket.io-client";
+// import io from "socket.io-client";
 
 export default function Home() {
 
@@ -28,7 +27,7 @@ export default function Home() {
   const StageComponent = useCallback(() => {
     console.log(" game state", gameState)
     if (gameState === "none") {
-      return <AvatarPicker />
+      return <HomePage/>
     }
     if (isHost) {
       if (gameState === "waitingForPlayers") {

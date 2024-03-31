@@ -30,10 +30,7 @@ const WalletContextProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const { networkConfiguration } = useNetworkConfiguration();
   const network = networkConfiguration as WalletAdapterNetwork;
   const endpoint = useMemo(() => clusterApiUrl(network), [network]);
-
-  console.log(network);
-
-  const wallets = useMemo(() => [new PhantomWalletAdapter(), new SolflareWalletAdapter()], [network]);
+  const wallets = useMemo(() => [new PhantomWalletAdapter(), new SolflareWalletAdapter()], []);
 
   const onError = useCallback((error: WalletError) => {
     toast.error(error.message ? `${error.name}: ${error.message}` : error.name);

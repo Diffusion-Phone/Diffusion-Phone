@@ -91,9 +91,9 @@ export function useAnchorProgram() {
   const {} = useWallet();
   const { provider, program } = useWorkspace();
 
-  if (!provider || !program || !gamePda) {
-    throw new Error("Workspace not initialized");
-  }
+  // if (!provider || !program || !gamePda) {
+  //   throw new Error("Workspace not initialized");
+  // }
 
   const getGameAccount = useQuery({
     queryKey: ["game"],
@@ -164,7 +164,7 @@ export async function initializeGame({
     program.programId
   );
   const [gamePda, gameBump] = PublicKey.findProgramAddressSync(
-    [Buffer.from("game"), payer.publicKey.toBuffer()],
+    [Buffer.from("game"), Buffer.from(roomId)],
     program.programId
   );
   await program.methods
@@ -202,6 +202,7 @@ export async function initialUser({
   );
   const playerArg: Record<string, unknown> = {};
   playerArg[avatar] = {};
+  console.log("playerArg", playerArg);
   const player = await program.methods
     // TODO: fix the type here
     .initializePlayer(playerArg as any)

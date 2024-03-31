@@ -28,7 +28,7 @@ type WorkspaceProvider = {
   playerPda?: PublicKey;
   joinGame: (roomId: string) => Promise<void>;
   initGame: () => Promise<void>;
-  initPlayer: () => Promise<void>;
+  initPlayer: (avatar: string) => Promise<void>;
 };
 
 // Create the context with default values
@@ -108,17 +108,20 @@ export const WorkspaceProvider = ({
     );
     await initializeGame({ program, provider, roomId })
     setGamePda(gamePDA);
-  }, [program, provider]);
+  }, [program, provider, playerPda]);
 
-  const initPlayer = useCallback(async () => {
+  const initPlayer = useCallback(async (avatar: string) => {
     if (!program || !provider) {
       toast.error("Program or provider not found");
       return;
     }
-    await initialUser({ program, provider}).then((playerPDA) => {
+    try {
+      const playerPDA = await initialUser({ program, provider, avatar})
+      console.log("playerPDA", playerPDA)
       setPlayerPda(playerPDA);
-    })
-    
+    } catch (error) {
+      console.log(error)
+    }
   }, [program, provider]);
 
   return (

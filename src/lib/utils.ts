@@ -16,7 +16,7 @@ export function generateRandomString(length: number) {
 
 export function snakeToCamel(str: string) {
   return (
-    str.charAt(0).toUpperCase() +
+    str.charAt(0).toLowerCase() +
     str
       .slice(1)
       .toLowerCase()
