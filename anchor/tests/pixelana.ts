@@ -73,18 +73,20 @@ describe("anchor", () => {
     // const player = await program.account.player.fetch(playerPda);
     // console.log("host:", player)
 
-    const hostDeposit = await program.methods.depositToVault(new anchor.BN(10000000)).accounts({ 
+    const hostDeposit = await program.methods.depositToVault(new anchor.BN(1 * LAMPORTS_PER_SOL)).accounts({ 
       depositor: hostPub,
       vault: vaultPda,
       player: playerPda
     }).rpc({
-      maxRetries: 3
+      skipPreflight: true,
+      commitment: "confirmed",
+      // maxRetries: 3
     });
 
     console.log("deposited to vault tx:", hostDeposit);
     const playerAfterDeposit = await program.account.player.fetch(playerPda);
 
-    expect(playerAfterDeposit.balance.toNumber()).to.equal(10000000);
+    expect(playerAfterDeposit.balance.toNumber()).to.equal(1 * LAMPORTS_PER_SOL);
     expect(playerAfterDeposit.avatar).to.eql({lifeInTheBalance: {}}) 
     expect(playerAfterDeposit.currentGame).to.equal(null);
     expect(playerAfterDeposit.games.toNumber()).to.equal(0);
@@ -99,7 +101,7 @@ describe("anchor", () => {
     }).rpc();
     console.log("reinit host success tx(should not do anything):", tx);
     const player = await program.account.player.fetch(playerPda);
-    expect(player.balance.toNumber()).to.equal(10000000);
+    expect(player.balance.toNumber()).to.equal(1 * LAMPORTS_PER_SOL);
     // should not reinitialize
     expect(player.avatar).to.eql({lifeinthebalance: {}}) 
     expect(player.currentGame).to.equal(null);
@@ -155,8 +157,19 @@ describe("anchor", () => {
 
       console.log("player 1 join game tx: ", player1JoinGame)
 
+      await program.methods.depositToVault(new anchor.BN(1 * LAMPORTS_PER_SOL)).accounts({ 
+        depositor: player.publicKey,
+        vault: vaultPda,
+        player: playerPda
+      }).signers([player]).rpc({
+        skipPreflight:true,
+        commitment: "confirmed",
+        maxRetries: 3
+      }); 
+
       const player1 = await program.account.player.fetch(playerPda);
       expect(player1.currentGame.toBase58()).to.equal(gamePda.toBase58());
+      expect(player1.balance.toNumber()).to.equal(1 * LAMPORTS_PER_SOL);
       const gameState = await program.account.game.fetch(gamePda)
       expect(gameState.participants.length).to.equal(1);
       expect(gameState.status).to.eql({waitingForParticipants: {}})
@@ -274,7 +287,9 @@ describe("anchor", () => {
         mint: mint.publicKey,
         nftAuthority: nft_authority[0],
         rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-      }).signers([mint]).rpc()
+      }).signers([mint]).rpc({
+        skipPreflight: true 
+      })
 
       console.log("minted nft tx: ", tx)
       const game = await program.account.game.fetch(gamePda);
