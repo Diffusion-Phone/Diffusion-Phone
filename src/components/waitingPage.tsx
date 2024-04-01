@@ -36,11 +36,11 @@ export default function WaitRoom() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const wallet = useWallet();
   const { socket, socketId } = useSocketAuth();
-  const { players, isHost, leaderBoard, gameState } = useGameState();
+  const { players, isHost, gameState } = useGameState();
   const { startGame } = useAction(isHost);
 
   useEffect(() => {
-    if (!isHost && gameState === "waitingForPrompt") {
+    if (!isHost && gameState === "waitingForStory") {
       setDialogOpen(true);
     } 
     return () => {
@@ -77,7 +77,8 @@ export default function WaitRoom() {
           </div>
           {"Let's Go!"}
         </Button>
-        <div className="mt-10 ">
+        {/* TODO: possibly replace with user's balance and user's total game*/}
+        {/* <div className="mt-10 ">
           {leaderBoard &&
             leaderBoard.map((l, i) => (
               <h3
@@ -85,7 +86,7 @@ export default function WaitRoom() {
                 className="text-shadow-custom font-sans text-lg text-[#8DFCBC]"
               >{`#${i + 1} ${l[0].slice(0, 6)}...${l[0].slice(l[0].length - 3, l[0].length - 1)}: ${l[1]}`}</h3>
             ))}
-        </div>
+        </div> */}
       </div>
       <WaitDialog open={dialogOpen} />
     </>

@@ -1,4 +1,4 @@
-'use client'
+'use client';
 import React, {
   createContext,
   useContext,
@@ -13,38 +13,36 @@ import { toast } from "sonner";
 import { useWorkspace } from "./WorkspaceProvider";
 import { Pixelana } from "../../anchor/target/types/pixelana";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { PublicKey } from "@solana/web3.js";
+import { camelToSnake } from "@/lib/utils";
 
 export interface PlayerInfo {
   balance: number;
   games: number;
   avatar: string;
-};
+}
 
 interface GameState {
   players: Array<User>;
   isHost: boolean;
   prompt: string;
-  playerInfo?: PlayerInfo,
+  playerInfo?: PlayerInfo;
   uploadedImgs: Array<[string, string]>;
   gameState:
     | "none"
-    // | "init"
-    | "waitingForPlayers"
-    | "waitingForPrompt"
-    | "waitingForDraw"
-    | "ended";
-  leaderBoard: Array<[string, string]>;
+    | "waitingForParticipants"
+    | "waitingForStory"
+    | "waitingForDrawings"
+    | "selectingWinner"
+    | "waitingForMinting"
+    | "completed";
 }
 
 const defaultGameState: GameState = {
   players: [],
   isHost: false,
-
   prompt: "",
   uploadedImgs: [],
   gameState: "none",
-  leaderBoard: [],
 };
 
 const GameStateContext = createContext<GameState>(defaultGameState);
@@ -54,81 +52,96 @@ export const useGameState = () => useContext(GameStateContext);
 export const GameStateProvider: FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  // TODO: listen to the game state change from the game account, remove all socket thing
+  const { gamePda, program, provider, playerPda } = useWorkspace();
+  const wallet = useWallet();
 
-  const {gamePda, program, provider} = useWorkspace();
-  const  wallet  = useWallet();
   const [gameState, setGameState] = useState<GameState>(defaultGameState);
-
-  // TODO: should fully remove this socket provider 
-  // const { socket } = useSocketAuth();
-
   useEffect(() => {
-
-    if (!provider ||  !program || !wallet.publicKey) {
+    if (!provider || !program || !wallet.publicKey || !playerPda) {
       return;
     }
-
-    const [playerPda, _] = PublicKey.findProgramAddressSync([Buffer.from("player"), wallet.publicKey.toBuffer()], program.programId)
-    // provider?.connection.getAccountInfo(playerPda).then((accountInfo) => {
-    //   if (!accountInfo) {
-    //     return
-    //   }
-    //   const player = program.coder.accounts.decode('Player', accountInfo.data)
-    //   setGameState({
-    //     ...gameState,
-    //     playerInfo: {
-    //       balance: player.balance,
-    //       games: player.games,
-    //       avatar: `/avatars/${Object.keys(player.avatar)[0]}`,
-    //     },
-    //   })
-    //   });
-    
-    const playerListner = provider?.connection.onAccountChange(playerPda, (account) => {
-      console.log("player account", account)
-      if (!account.data) {
-        return
+    provider?.connection.getAccountInfo(playerPda).then((accountInfo) => {
+      if (!accountInfo) {
+        console.log("No player account found, creating one now");
+        return;
       }
-      const player = program.coder.accounts.decode('player', account.data)
-      console.log(player)
+      const player = program.coder.accounts.decode("player", accountInfo.data);
+      console.log(camelToSnake(Object.keys(player.avatar)[0]));
       setGameState({
         ...gameState,
         playerInfo: {
-          balance: player.balance,
-          games: player.games,
-          avatar: `/avatars/${Object.keys(player.avatar)[0]}.png`,
+          balance: player.balance.toNumber() / 1000000000,
+          games: player.games.toNumber(),
+          avatar: `/avatars/${camelToSnake(Object.keys(player.avatar)[0])}.png`,
         },
       });
-    })
+    });
 
-    if (!gamePda) {
-      return () => {
-        provider.connection.removeAccountChangeListener(playerListner)
-      };
+    const playerListner = provider?.connection.onAccountChange(
+      playerPda,
+      (account) => {
+        console.log("player account", account);
+        if (!account.data) {
+          return;
+        }
+        const player = program.coder.accounts.decode("player", account.data);
+        console.log(player);
+        setGameState({
+          ...gameState,
+          playerInfo: {
+            balance: player.balance,
+            games: player.games,
+            avatar: `/avatars/${Object.keys(player.avatar)[0]}.png`,
+          },
+        });
+      }
+    );
+
+    return () => {
+      provider.connection.removeAccountChangeListener(playerListner);
+    };
+  }, [provider, program, wallet, playerPda]);
+
+  useEffect(() => {
+    if (!provider || !program || !wallet.publicKey || !gamePda) {
+      return;
     }
 
-
-    // TODO: have to align the type between on chain data and the game state
-    const gameListner = provider?.connection.onAccountChange(gamePda, (account) => {
-      const gameState = program.coder.accounts.decode('game', account.data)
+    provider?.connection.getAccountInfo(gamePda).then((accountInfo) => {
+      if (!accountInfo) {
+        return;
+      }
+      const gameState = program.coder.accounts.decode("game", accountInfo.data);
+      console.log();
       setGameState({
         ...gameState,
         players: gameState.players,
-        isHost: gameState.isHost,
+        isHost: gameState.host,
         prompt: gameState.prompt,
         uploadedImgs: gameState.uploadedImgs,
-        gameState: gameState.gameState,
-        leaderBoard: gameState.leaderBoard,
+        gameState: gameState.status,
       });
-    })
+    });
 
+    // TODO: have to align the type between on chain data and the game state
+    const gameListner = provider?.connection.onAccountChange(
+      gamePda,
+      (account) => {
+        const gameState = program.coder.accounts.decode("game", account.data);
+        setGameState({
+          ...gameState,
+          players: gameState.players,
+          isHost: gameState.host,
+          prompt: gameState.prompt,
+          uploadedImgs: gameState.uploadedImgs,
+          gameState: gameState.status,
+        });
+      }
+    );
     return () => {
-      provider.connection.removeAccountChangeListener(gameListner)
-      provider.connection.removeAccountChangeListener(playerListner)
-    }
-  }, [gamePda, provider, program, wallet])
-
+      provider.connection.removeAccountChangeListener(gameListner);
+    };
+  }, [gamePda, provider, program]);
 
   return (
     <GameStateContext.Provider value={gameState}>

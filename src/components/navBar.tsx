@@ -2,23 +2,68 @@
 
 import { Button } from "./ui/button";
 import React from "react";
-import { wallet as walletSvg, setting } from "@/lib/iconSvgs";
-import Image from "next/image";
-import dynamic from "next/dynamic";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {WalletMultiButton} from "@solana/wallet-adapter-react-ui";
 import '@solana/wallet-adapter-react-ui/styles.css';
 import './wallet.css'
-import { useRouter, usePathname } from "next/navigation";
-import { useAnchorProgram } from "@/lib/useAction";
+import { useRouter} from "next/navigation";
+import { depositToVault} from "@/lib/useAction";
 import { useWorkspace } from "@/contexts/WorkspaceProvider";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { useGameState } from "@/contexts/GameStateProvider";
 
 const buttonStyles = "rounded-xl italic border-dashed border-[5px] border-black hover:bg-[#f7d726] "
 
+function PlayerDialog() {
+  const {playerInfo} = useGameState()
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button className={`h-auto p-0 ${buttonStyles} transition ease-in-out hover:-translate-y-1 hover:scale-110`}>
+          <svg xmlns="http://www.w3.org/2000/svg" width={40} height={40} viewBox="0 0 24 24"><path fill="currentColor" d="M12 12q-1.65 0-2.825-1.175T8 8q0-1.65 1.175-2.825T12 4q1.65 0 2.825 1.175T16 8q0 1.65-1.175 2.825T12 12m-8 8v-2.8q0-.85.438-1.562T5.6 14.55q1.55-.775 3.15-1.162T12 13q1.65 0 3.25.388t3.15 1.162q.725.375 1.163 1.088T20 17.2V20z"></path></svg>
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="bg-secondary justify-center flex flex-col items-center border-yellow-300 border-[4px]">
+        <DialogHeader>
+          <DialogTitle className="font-sans text-white">
+            Your Info
+          </DialogTitle>
+          <Avatar className="bg-primary h-[100px] w-[100px] rounded-full border-[5px] border-yellow-400">
+            <AvatarImage src={playerInfo?.avatar ?? ""} alt="avatar"/>
+            <AvatarFallback>-</AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col">
+            <div className="inline-flex justify-between">
+              <span className="text-white">Balance</span>
+              <span className="text-white">{playerInfo?.balance ?? "?"}</span>
+            </div>
+            <div className="inline-flex justify-between">
+              <span className="text-white">Games</span>
+              <span className="text-white">{playerInfo?.games ?? ""}</span>
+            </div>
+          </div>
+        </DialogHeader>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+
 export default function NavBar() {
   const router = useRouter();
-  const {initPlayer} = useWorkspace()
-  const {mutateDeposit} = useAnchorProgram()
+  const {initPlayer, provider, program} = useWorkspace()
+  const mutateDeposit = useMutation({
+    mutationFn: ({ amount }: { amount: number }) =>
+      depositToVault({ provider, program, amount }),
+  });
 
   const mutateInitPlayer = useMutation({mutationFn: initPlayer})
   
@@ -32,10 +77,8 @@ export default function NavBar() {
         </div>
       </button>
       <div className="inline-flex items-center justify-center gap-5">
-        <Button disabled={mutateInitPlayer.status === "pending"} onClick={() => mutateInitPlayer.mutate()} className={`h-auto p-0 ${buttonStyles} transition ease-in-out hover:-translate-y-1 hover:scale-110`}>
-          <svg xmlns="http://www.w3.org/2000/svg" width={40} height={40} viewBox="0 0 24 24"><path fill="currentColor" d="M12 12q-1.65 0-2.825-1.175T8 8q0-1.65 1.175-2.825T12 4q1.65 0 2.825 1.175T16 8q0 1.65-1.175 2.825T12 12m-8 8v-2.8q0-.85.438-1.562T5.6 14.55q1.55-.775 3.15-1.162T12 13q1.65 0 3.25.388t3.15 1.162q.725.375 1.163 1.088T20 17.2V20z"></path></svg>
-        </Button>
-        <Button disabled={mutateDeposit.status === "pending"} onClick={() => mutateDeposit.mutate({amount: 5})} className={`h-auto p-0 ${buttonStyles} transition ease-in-out hover:-translate-y-1 hover:scale-110`}>
+        <PlayerDialog />
+        <Button disabled={mutateDeposit.status === "pending"} onClick={() => mutateDeposit.mutateAsync({amount: 1})} className={`h-auto p-0 ${buttonStyles} transition ease-in-out hover:-translate-y-1 hover:scale-110`}>
           <svg xmlns="http://www.w3.org/2000/svg" width={40} height={40} viewBox="0 0 256 256"><path fill="currentColor" d="M216 36H40a20 20 0 0 0-20 20v136a20 20 0 0 0 20 20h12v12a12 12 0 0 0 24 0v-12h104v12a12 12 0 0 0 24 0v-12h12a20 20 0 0 0 20-20V56a20 20 0 0 0-20-20M44 188V60h168v56h-21.68a44 44 0 1 0 0 24H212v48Zm124-60a20 20 0 1 1-20-20a20 20 0 0 1 20 20"></path></svg>
         </Button>
       <WalletMultiButton className="wallet-button mr-6 font-sans">

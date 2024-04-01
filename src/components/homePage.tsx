@@ -55,42 +55,6 @@ function JoinRoomDialog({ onClick }: { onClick: (roomId: string) => void }) {
   );
 }
 
-const avatars = [
-  "life-in-the-balance.png",
-  "pierced-heart.png",
-  "haunting.png",
-  "skeletal-hand.png",
-  "sarcophagus.png",
-  "spectre.png",
-  "slipknot.png",
-  "shambling-zombie.png",
-  "oni.png",
-  "telefrag.png",
-  "morgue-feet.png",
-  "decapitation.png",
-  "dead-head.png",
-  "anubis.png",
-  "ghost.png",
-  "scythe.png",
-  "graveyard.png",
-  "reaper-scythe.png",
-  "drowning.png",
-  "internal-injury.png",
-  "prayer.png",
-  "dead-eye.png",
-  "resting-vampire.png",
-  "guillotine.png",
-  "tombstone.png",
-  "dead-wood.png",
-  "pirate-grave.png",
-  "coffin.png",
-  "carrion.png",
-  "egyptian-urns.png",
-  "grave-flowers.png",
-  "grim-reaper.png",
-  "executioner-hood.png",
-  "maggot.png",
-];
 
 const genRandomName = () => {
   let randomName = "";

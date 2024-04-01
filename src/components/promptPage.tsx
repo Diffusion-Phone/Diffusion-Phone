@@ -49,7 +49,7 @@ export default function PromptRoom() {
   };
 
   useEffect(() => {
-    if (gameState === "waitingForDraw") {
+    if (gameState === "waitingForDrawings") {
       setSubmitted(true);
     }
   });

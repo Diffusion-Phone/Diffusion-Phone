@@ -386,6 +386,8 @@ pub struct Player {
     pub current_game: Option<Pubkey>, // 32 + 1
     pub balance: u64, // 8
     pub games: u64, // 8
+    //TODO: make this work
+    // pub wins: u64, // 8
     pub avatar: Avatar, // 1
 }
 
@@ -435,7 +437,7 @@ pub struct InitializePlayer<'info> {
         seeds = [SEED_PLAYER, payer.key.as_ref()],
         bump,
         payer = payer,
-        space = 8 + 32 + 1 + 8 + 8 + 1// std::mem::size_of::<Player>(), // Adjust space according to your needs
+        space = 8 + 32 + 1 + 8 + 8 + 8 + 1// std::mem::size_of::<Player>(), // Adjust space according to your needs
     )]
     pub player: Account<'info, Player>,
 
@@ -501,6 +503,9 @@ pub struct SelectWinner<'info> {
     #[account(mut)]
     pub game: Account<'info, Game>,
     pub host: Signer<'info>,
+    //TODO: make this work
+    // #[account(mut)]
+    // pub selected: Account<'info, Player>,
 }
 
 #[derive(Accounts)]

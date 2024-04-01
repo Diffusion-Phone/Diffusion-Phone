@@ -1,15 +1,11 @@
 'use client'
 import { WalletAdapterNetwork, WalletError } from "@solana/wallet-adapter-base";
 import {
-  AnchorWallet,
   ConnectionProvider,
-  useConnection,
-  useWallet,
   WalletProvider,
 } from "@solana/wallet-adapter-react";
-import { PhantomWalletAdapter, BitpieWalletAdapter, SolflareWalletAdapter} from "@solana/wallet-adapter-wallets";
-import { Cluster, clusterApiUrl } from "@solana/web3.js";
-// import { AnchorProvider } from "@coral-xyz/anchor";
+import { PhantomWalletAdapter, SolflareWalletAdapter} from "@solana/wallet-adapter-wallets";
+import { clusterApiUrl } from "@solana/web3.js";
 import { FC, ReactNode, useCallback, useMemo } from "react";
 import { AutoConnectProvider, useAutoConnect } from "./AutoConnectProvider";
 import { toast } from "sonner";

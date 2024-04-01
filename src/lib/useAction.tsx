@@ -7,7 +7,7 @@ import { useCallback } from "react";
 import { IDL, Pixelana } from "../../anchor/target/types/pixelana";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { programId } from "@/lib/constant";
-import { AnchorProvider, Program } from "@coral-xyz/anchor";
+import { AnchorProvider, Program, BN} from "@coral-xyz/anchor";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import {
@@ -95,55 +95,56 @@ export function useAnchorProgram() {
   //   throw new Error("Workspace not initialized");
   // }
 
-  const getGameAccount = useQuery({
-    queryKey: ["game"],
-    queryFn: () => program.account.game.fetch(gamePda),
-  });
+  // TODO: create each of this inside the component
+  // const getGameAccount = useQuery({
+  //   queryKey: ["game"],
+  //   queryFn: () => program.account.game.fetch(gamePda),
+  // });
 
-  const mutateDeposit = useMutation({
-    mutationFn: ({ amount }: { amount: number }) =>
-      depositToVault({ provider, program, amount }),
-  });
+  // const mutateDeposit = useMutation({
+  //   mutationFn: ({ amount }: { amount: number }) =>
+  //     depositToVault({ provider, program, amount }),
+  // });
 
-  const mutateStartGame = useMutation({
-    mutationFn: () => startGame({ provider, program, gamePda }),
-  });
+  // const mutateStartGame = useMutation({
+  //   mutationFn: () => startGame({ provider, program, gamePda }),
+  // });
 
-  const mutateSubmitStory = useMutation({
-    mutationFn: ({ story }: { story: string }) =>
-      submitStory({ provider, program, gamePda, story }),
-  });
+  // const mutateSubmitStory = useMutation({
+  //   mutationFn: ({ story }: { story: string }) =>
+  //     submitStory({ provider, program, gamePda, story }),
+  // });
 
-  const mutateSubmitImage = useMutation({
-    mutationFn: ({ image }: { image: string }) =>
-      submitImage({ provider, program, gamePda, image }),
-  });
+  // const mutateSubmitImage = useMutation({
+  //   mutationFn: ({ image }: { image: string }) =>
+  //     submitImage({ provider, program, gamePda, image }),
+  // });
 
-  const mutateSelectWinner = useMutation({
-    mutationFn: ({ winner }: { winner: number }) =>
-      selectWinner({ provider, program, gamePda, winner }),
-  });
+  // const mutateSelectWinner = useMutation({
+  //   mutationFn: ({ winner }: { winner: number }) =>
+  //     selectWinner({ provider, program, gamePda, winner }),
+  // });
 
-  const mutateGenerateImage = useMutation({
-    mutationFn: (prompt: string) =>
-      generateImage({ provider, program, gamePda, prompt }),
-  });
+  // const mutateGenerateImage = useMutation({
+  //   mutationFn: (prompt: string) =>
+  //     generateImage({ provider, program, gamePda, prompt }),
+  // });
 
-  const mutateMintNft = useMutation({
-    mutationFn: (winner: { participant: PublicKey; drawingRef: string }) =>
-      mintNft({ provider, program, gamePda, winner }),
-  });
+  // const mutateMintNft = useMutation({
+  //   mutationFn: (winner: { participant: PublicKey; drawingRef: string }) =>
+  //     mintNft({ provider, program, gamePda, winner }),
+  // });
 
-  return {
-    getGameAccount,
-    mutateDeposit,
-    mutateStartGame,
-    mutateSubmitStory,
-    mutateSubmitImage,
-    mutateSelectWinner,
-    mutateGenerateImage,
-    mutateMintNft,
-  };
+  // return {
+  //   getGameAccount,
+  //   mutateDeposit,
+  //   mutateStartGame,
+  //   mutateSubmitStory,
+  //   mutateSubmitImage,
+  //   mutateSelectWinner,
+  //   mutateGenerateImage,
+  //   mutateMintNft,
+  // };
 }
 
 export async function initializeGame({
@@ -263,8 +264,8 @@ export async function depositToVault({
   program,
   amount,
 }: {
-  provider: AnchorProvider;
-  program: Program<Pixelana>;
+  provider?: AnchorProvider;
+  program?: Program<Pixelana>;
   amount: number;
 }) {
   if (!provider || !program) {
@@ -282,7 +283,7 @@ export async function depositToVault({
   );
 
   await program.methods
-    .depositToVault(new anchor.BN(amount * LAMPORTS_PER_SOL))
+    .depositToVault(new BN(amount * LAMPORTS_PER_SOL))
     .accounts({
       depositor: payer.publicKey,
       vault: vaultPda,
@@ -302,8 +303,8 @@ export async function startGame({
   program,
   gamePda,
 }: {
-  provider: AnchorProvider;
-  program: Program<Pixelana>;
+  provider?: AnchorProvider;
+  program?: Program<Pixelana>;
   gamePda: PublicKey;
 }) {
   if (!provider || !program) {
@@ -339,8 +340,8 @@ export async function submitStory({
   gamePda,
   story,
 }: {
-  provider: AnchorProvider;
-  program: Program<Pixelana>;
+  provider?: AnchorProvider;
+  program?: Program<Pixelana>;
   gamePda: PublicKey;
   story: string;
 }) {
@@ -377,9 +378,9 @@ export async function submitImage({
   gamePda,
   image,
 }: {
-  provider: AnchorProvider;
-  program: Program<Pixelana>;
-  gamePda: PublicKey;
+  provider?: AnchorProvider;
+  program?: Program<Pixelana>;
+  gamePda?: PublicKey;
   image: string;
 }) {
   if (!provider || !program) {
@@ -414,9 +415,9 @@ export async function generateImage({
   program,
   gamePda,
 }: {
-  provider: AnchorProvider;
-  program: Program<Pixelana>;
-  gamePda: PublicKey;
+  provider?: AnchorProvider;
+  program?: Program<Pixelana>;
+  gamePda?: PublicKey;
   prompt: string;
 }) {
   if (!provider || !program) {
@@ -459,9 +460,9 @@ export async function selectWinner({
   gamePda,
   winner,
 }: {
-  provider: AnchorProvider;
-  program: Program<Pixelana>;
-  gamePda: PublicKey;
+  provider?: AnchorProvider;
+  program?: Program<Pixelana>;
+  gamePda?: PublicKey;
   winner: number;
 }) {
   if (!provider || !program) {
@@ -497,9 +498,9 @@ export async function mintNft({
   gamePda,
   winner,
 }: {
-  provider: AnchorProvider;
-  program: Program<Pixelana>;
-  gamePda: PublicKey;
+  provider?: AnchorProvider;
+  program?: Program<Pixelana>;
+  gamePda?: PublicKey;
   winner: { participant: PublicKey; drawingRef: string };
 }) {
   if (!provider || !program) {

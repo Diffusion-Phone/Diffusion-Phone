@@ -22,8 +22,8 @@ import { toast } from "sonner";
 
 // Define the structure of the Program context state
 type WorkspaceProvider = {
-  program: Program<Pixelana> | null;
-  provider: AnchorProvider | null;
+  program?: Program<Pixelana>;
+  provider?: AnchorProvider;
   gamePda?: PublicKey;
   playerPda?: PublicKey;
   joinGame: (roomId: string) => Promise<void>;
@@ -33,8 +33,6 @@ type WorkspaceProvider = {
 
 // Create the context with default values
 const WorkspaceContext = createContext<WorkspaceProvider>({
-  program: null,
-  provider: null,
   joinGame: async (roomId: string) => {},
   initGame: async () => {},
   initPlayer: async () => {},
@@ -53,10 +51,11 @@ export const WorkspaceProvider = ({
   const { connection } = useConnection();
 
   // State variable to hold the program instance
-  const [program, setProgram] = useState<Program<Pixelana> | null>(null);
-  const [provider, setProviderInner] = useState<AnchorProvider | null>(null);
+  const [program, setProgram] = useState<Program<Pixelana>>();
+  const [provider, setProviderInner] = useState<AnchorProvider>();
   const [gamePda, setGamePda] = useState<PublicKey>();
   const [playerPda, setPlayerPda] = useState<PublicKey>();
+
 
   // Anchor program setup
   const setup = useCallback(async () => {
@@ -75,6 +74,30 @@ export const WorkspaceProvider = ({
   useEffect(() => {
     setup();
   }, [setup]);
+
+
+  useEffect(() => {
+    if (!wallet?.publicKey || !program || !provider) {
+      return 
+    }
+    const [playerPda, _] = PublicKey.findProgramAddressSync(
+      [Buffer.from("player"), wallet.publicKey.toBuffer()],
+      program?.programId
+    );
+
+
+    provider?.connection.getAccountInfo(playerPda).then((accountInfo) => {
+      if (!accountInfo) {
+        toast.info("No player account found, creating one now")
+        return
+      }
+      // const player = program.coder.accounts.decode('player', accountInfo.data)
+      setPlayerPda(playerPda);
+    });
+
+    setPlayerPda(playerPda);
+
+  }, [program, provider, wallet?.publicKey])
 
   const joinGame = useCallback(
     async (roomId: string) => {

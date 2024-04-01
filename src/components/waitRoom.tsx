@@ -1,5 +1,4 @@
 import { Avatar, AvatarImage } from "@radix-ui/react-avatar";
-import { Button } from "./ui/button";
 
 
 export interface User {
