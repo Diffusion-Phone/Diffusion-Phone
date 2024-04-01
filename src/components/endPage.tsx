@@ -28,7 +28,6 @@ interface Content {
 const columnStyle = "";
 
 export default function EndRoom() {
-  const { socket, socketId } = useSocketAuth();
   const router = useRouter();
   const resultRef = useRef<HTMLDivElement>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -46,12 +45,6 @@ export default function EndRoom() {
     console.log(allContent)
     setContent(allContent)
   }, [uploadedImgs])
-
-
-  useEffect(() => {
-    if (socket) {
-    }
-  }, [socket]);
 
   useEffect(() => {
     //scroll to bottom with animation

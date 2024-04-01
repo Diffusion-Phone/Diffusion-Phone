@@ -342,7 +342,7 @@ export async function submitStory({
 }: {
   provider?: AnchorProvider;
   program?: Program<Pixelana>;
-  gamePda: PublicKey;
+  gamePda?: PublicKey;
   story: string;
 }) {
   if (!provider || !program) {
@@ -414,6 +414,7 @@ export async function generateImage({
   provider,
   program,
   gamePda,
+  prompt
 }: {
   provider?: AnchorProvider;
   program?: Program<Pixelana>;

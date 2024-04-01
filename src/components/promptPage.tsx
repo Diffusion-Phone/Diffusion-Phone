@@ -14,7 +14,10 @@ import { Button } from "@/components/ui/button";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { cn } from "@/lib/utils";
 import { useGameState } from "@/contexts/GameStateProvider";
-import { useAction } from "@/lib/useAction";
+// import { useAction } from "@/lib/useAction";
+import {submitStory as submitStoryFn } from "@/lib/useAction";
+import { useMutation } from "@tanstack/react-query";
+import { useWorkspace } from "@/contexts/WorkspaceProvider";
 
 function FinishDialog({ open, hasTime }: { open: boolean; hasTime: boolean }) {
   return (
@@ -37,16 +40,16 @@ const buttonStyle =
   "rounded-xl italic ring-[5px] ring-orange-600 hover:bg-[#f7d726] text-shadow-md";
 
 export default function PromptRoom() {
-  const { socket } = useSocketAuth();
   const [timeLeft, setTimeLeft] = useState(60);
+  const {provider, program, gamePda} = useWorkspace();
   const { isHost, gameState } = useGameState();
-  const { submitPrompt } = useAction(isHost);
-  // const router = useRouter();
 
-  const submitStory = (prompt: string) => {
-    submitPrompt(wallet.publicKey?.toBase58()!, prompt);
-    setSubmitted(true);
-  };
+  const submitStory = useMutation({
+    mutationFn: async (story: string) => {
+      submitStoryFn({provider, program, gamePda, story})
+      setSubmitted(true);
+    }
+  })
 
   useEffect(() => {
     if (gameState === "waitingForDrawings") {
@@ -57,7 +60,7 @@ export default function PromptRoom() {
   useEffect(() => {
     // Exit early when we reach 0
     if (!timeLeft) {
-      submitStory(story || "Host has not submitted a story, imagine one!");
+      submitStory.mutate(story || "Host has not submitted a story, imagine one!");
     }
 
     // Save intervalId to clear the interval when the component re-renders
@@ -131,7 +134,7 @@ export default function PromptRoom() {
               setStory(e.currentTarget.value);
             }}
           />
-          <Button className={buttonStyle} onClick={() => submitStory(story)}>
+          <Button className={buttonStyle} onClick={() => submitStory.mutate(story)}>
             Submit
           </Button>
         </div>

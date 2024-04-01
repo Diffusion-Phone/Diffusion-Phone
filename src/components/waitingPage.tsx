@@ -35,7 +35,6 @@ function WaitDialog({ open }: { open: boolean }) {
 export default function WaitRoom() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const wallet = useWallet();
-  const { socket, socketId } = useSocketAuth();
   const { players, isHost, gameState } = useGameState();
   const { startGame } = useAction(isHost);
 
@@ -77,7 +76,7 @@ export default function WaitRoom() {
           </div>
           {"Let's Go!"}
         </Button>
-        {/* TODO: possibly replace with user's balance and user's total game*/}
+        {/* TODO: possibly replace with user's balance and user's total wins*/}
         {/* <div className="mt-10 ">
           {leaderBoard &&
             leaderBoard.map((l, i) => (
