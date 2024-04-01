@@ -1,4 +1,8 @@
-import { Avatar, AvatarImage } from "@radix-ui/react-avatar";
+import { useGameState } from "@/contexts/GameStateProvider";
+import { useWorkspace } from "@/contexts/WorkspaceProvider";
+import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { type PublicKey } from "@solana/web3.js";
 
 
 export interface User {
@@ -10,16 +14,22 @@ export interface User {
 }
 
 interface RoomProps {
-  users: User[];
+  users: PublicKey[];
 }
 
-export function UserCard({ user }: { user: User }) {
+export function UserCard({ user }: { user: PublicKey }) {
+  const keyString = user.toString();
+  const wallet = useWallet();
+  const {playerInfo} = useGameState();  
   return (
     <div className="flex flex-col items-center justify-center rounded-lg m-2">
       <Avatar className="w-[100px] h-[100px] border-[5px] border-black p-2 rounded-lg bg-yellow-300">
-        <AvatarImage src={user.avatar} />
+        <AvatarImage src={user.equals(wallet.publicKey!) ? playerInfo?.avatar : ""} />
+        <AvatarFallback>
+          <svg xmlns="http://www.w3.org/2000/svg" width={100} height={100} viewBox="0 0 24 24"><path fill="currentColor" d="M13 22h-3v-3h3v3Zm0-5h-3v-.007c0-1.65 0-3.075.672-4.073a6.304 6.304 0 0 1 1.913-1.62c.334-.214.649-.417.914-.628a3.712 3.712 0 0 0 1.332-3.824A3.033 3.033 0 0 0 9 8H6a6 6 0 0 1 6-6a6.04 6.04 0 0 1 5.434 3.366a6.017 6.017 0 0 1-.934 6.3c-.453.502-.96.95-1.514 1.337a7.248 7.248 0 0 0-1.316 1.167A4.23 4.23 0 0 0 13 17Z"></path></svg>
+        </AvatarFallback>
       </Avatar>
-      <h3>{user.name}</h3>
+      <h3>{`${keyString.slice(0,6)}...${keyString.slice(keyString.length-3)}`}</h3>
     </div>
   )
 } 
@@ -32,8 +42,8 @@ export function Room({ users }: RoomProps) {
       <h1 className="font-customs text-[50px] text-shadow-custom text-[#8DFCBC]">Room</h1>
       <h2 className="text-shadow sm:text-shadow-sm md:text-shadow-md lg:text-shadow-lg xl:text-shadow-xl">PLAYERS: {users.length}/7 </h2>
       <div className="flex flex-row border-[5px] w-full border-black rounded-lg overflow-x-auto">
-        {users.map((user) => (
-          <UserCard user={user} key={user.socketId}/>
+        {users.map((userKey) => (
+          <UserCard user={userKey} key={userKey.toString()}/>
         ))}
         {[...Array(7 - users.length)].map((_, i) => (
 

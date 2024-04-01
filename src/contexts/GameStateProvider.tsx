@@ -7,13 +7,11 @@ import React, {
   FC,
   ReactNode,
 } from "react";
-import { useSocketAuth } from "./SocketAuthContext";
-import { type User } from "@/components/waitRoom";
 import { toast } from "sonner";
 import { useWorkspace } from "./WorkspaceProvider";
-import { Pixelana } from "../../anchor/target/types/pixelana";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { camelToSnake } from "@/lib/utils";
+import { type PublicKey } from "@solana/web3.js";
 
 export interface PlayerInfo {
   balance: number;
@@ -21,12 +19,17 @@ export interface PlayerInfo {
   avatar: string;
 }
 
+export interface Drawing {
+  participant: PublicKey,
+  drawingRef: string;
+}
+
 interface GameState {
-  players: Array<User>;
+  players: Array<PublicKey>;
   isHost: boolean;
   prompt: string;
   playerInfo?: PlayerInfo;
-  uploadedImgs: Array<[string, string]>;
+  uploadedImgs: Array<Drawing>;
   gameState:
     | "none"
     | "waitingForParticipants"
@@ -116,7 +119,7 @@ export const GameStateProvider: FC<{ children: ReactNode }> = ({
       setGameState({
         ...gameState,
         players: gameState.players,
-        isHost: gameState.host,
+        isHost: gameState.host ?? gameState.players[0].equals(wallet.publicKey),
         prompt: gameState.prompt,
         uploadedImgs: gameState.uploadedImgs,
         gameState: gameState.status,

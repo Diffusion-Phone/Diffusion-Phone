@@ -1,7 +1,6 @@
 'use client';
 import { Button } from "@/components/ui/button";
-import { Room, type User } from "@/components/waitRoom";
-import { useSocketAuth } from "@/contexts/SocketAuthContext";
+import { Room } from "@/components/waitRoom";
 import {
   Dialog,
   DialogContent,

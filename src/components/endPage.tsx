@@ -3,7 +3,6 @@
 import { AvatarImage } from "@/components/ui/avatar";
 import Image from "next/image";
 import { type User } from "@/components/waitRoom";
-import { useSocketAuth } from "@/contexts/SocketAuthContext";
 import { Avatar } from "@radix-ui/react-avatar";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -38,13 +37,20 @@ export default function EndRoom() {
   const [content, setContent] = useState<Content[]>([]);
 
   useEffect(() => {
-    console.log(uploadedImgs, players)
-    const allContent = [{ type: "story", data: prompt, user: players[0] }, ...uploadedImgs.map(([publicKey, image]) => {
-      return { type: "image", data: image, user: players.filter((p) => p.publicKey == publicKey)[0] }
-    })] as Content[];
-    console.log(allContent)
-    setContent(allContent)
-  }, [uploadedImgs])
+    console.log(uploadedImgs, players);
+    const allContent = [
+      { type: "story", data: prompt, user: players[0] },
+      ...uploadedImgs.map(([publicKey, image]) => {
+        return {
+          type: "image",
+          data: image,
+          user: players.filter((p) => p.publicKey == publicKey)[0],
+        };
+      }),
+    ] as any[];
+    console.log(allContent);
+    setContent(allContent);
+  }, [uploadedImgs]);
 
   useEffect(() => {
     //scroll to bottom with animation
@@ -82,7 +88,9 @@ export default function EndRoom() {
                     </div>
                     <button
                       className="items-center justify-center disabled:opacity-50"
-                      onClick={() => likeDraw(c.user.publicKey, c.user.socketId)}
+                      onClick={() =>
+                        likeDraw(c.user.publicKey, c.user.socketId)
+                      }
                       disabled={!isHost}
                     >
                       <svg
@@ -170,7 +178,7 @@ export default function EndRoom() {
               <TooltipTrigger
                 className={cn(
                   "bg-primary text-shadow-md absolute bottom-2 right-2 hidden rounded-xl px-1 italic ring-[5px] ring-orange-600 hover:bg-[#f7d726]",
-                  isHost && "flex",
+                  isHost && "flex"
                 )}
                 onClick={backRoom}
               >
@@ -201,39 +209,39 @@ export default function EndRoom() {
 }
 
 // const [content, setContent] = useState<Content[]>([
-  // {
-  //   type: "story",
-  //   data: "A Hugging Face Model",
-  //   user: {
-  //     socketId: "9",
-  //     name: "User 0",
-  //     avatar: "https://picsum.photos/200/300",
-  //     isHost: true,
-  //     publicKey: "123"
-  //   }
-  // },
-  // {
-  //   type: "image",
-  //   data: "https://picsum.photos/200/300",
-  //   user: {
-  //     socketId: "8",
-  //     name: "User 1",
-  //     avatar: "https://picsum.photos/200/300",
-  //     isHost: false,
-  //     publicKey: "123"
-  //   }
-  // },
-  // {
-  //   type: "image",
-  //   data: "https://picsum.photos/200/300",
-  //   user: {
-  //     socketId: "1",
-  //     name: "User 2",
-  //     avatar: "https://picsum.photos/200/300",
-  //     isHost: false,
-  //     publicKey: "123"
-  //   }
-  // },
+// {
+//   type: "story",
+//   data: "A Hugging Face Model",
+//   user: {
+//     socketId: "9",
+//     name: "User 0",
+//     avatar: "https://picsum.photos/200/300",
+//     isHost: true,
+//     publicKey: "123"
+//   }
+// },
+// {
+//   type: "image",
+//   data: "https://picsum.photos/200/300",
+//   user: {
+//     socketId: "8",
+//     name: "User 1",
+//     avatar: "https://picsum.photos/200/300",
+//     isHost: false,
+//     publicKey: "123"
+//   }
+// },
+// {
+//   type: "image",
+//   data: "https://picsum.photos/200/300",
+//   user: {
+//     socketId: "1",
+//     name: "User 2",
+//     avatar: "https://picsum.photos/200/300",
+//     isHost: false,
+//     publicKey: "123"
+//   }
+// },
 // ]);
 
 // const onBackRoom = () => {

@@ -4,25 +4,13 @@ import DrawRoom from "@/components/drawPage";
 import EndRoom from "@/components/endPage";
 import NavBar from "@/components/navBar";
 import PromptRoom from "@/components/promptPage";
-// import { Button } from "@/components/ui/button";
 import WaitRoom from "@/components/waitingPage";
 import { useGameState } from "@/contexts/GameStateProvider";
-import { useSocketAuth } from "@/contexts/SocketAuthContext";
-// import Image from "next/image";
-import { useCallback, useEffect } from "react";
-// import io from "socket.io-client";
+import { useCallback} from "react";
 
 export default function Home() {
 
-  const {socket} = useSocketAuth()
   const {gameState, isHost} = useGameState()
-
-  // useEffect(() => {
-  //   if (socket) {
-  //     socket.on("")
-  //   }
-  // }, [socket]);
-
 
   const StageComponent = useCallback(() => {
     console.log(" game state", gameState)
@@ -30,23 +18,22 @@ export default function Home() {
       return <HomePage/>
     }
     if (isHost) {
-      if (gameState === "waitingForPlayers") {
+      if (gameState === "waitingForParticipants") {
         return <WaitRoom />
       }
-      if (gameState === "waitingForPrompt" || gameState === "waitingForDraw") {
+      if (gameState === "waitingForStory" || gameState === "waitingForDrawings") {
         return <PromptRoom/>
-      }
-      if (gameState === "ended") {
+      } else {
         return <EndRoom />
       }
     } else {
-      if (gameState === "waitingForPlayers" || gameState === "waitingForPrompt") {
+      if (gameState === "waitingForParticipants" || gameState === "waitingForStory") {
         return <WaitRoom />
       }     
-      if (gameState === "waitingForDraw") {
+      if (gameState === "waitingForDrawings") {
         return <DrawRoom/>
       }
-      if (gameState === "ended") {
+      else {
         return <EndRoom />
       }
     }

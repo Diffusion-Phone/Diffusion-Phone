@@ -1,5 +1,4 @@
 'use client';
-import { useSocketAuth } from "@/contexts/SocketAuthContext";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import {
@@ -13,8 +12,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
-import { useWallet } from "@solana/wallet-adapter-react";
 import { useGameState } from "@/contexts/GameStateProvider";
 import { submitImage as submitImageFn, generateImage as generateImageFn} from "@/lib/useAction";
 import { useMutation } from "@tanstack/react-query";
@@ -43,7 +40,6 @@ const inputStyle =
   "flex-1 border ring-orange-600 ring-[5px] rounded-lg focus-visible:ring-emerald-600 focus-visible:ring-[5px]";
 
 export default function DrawRoom() {
-  const { socket } = useSocketAuth();
   const { provider, program, gamePda } = useWorkspace();
   // received content, either image or story
   const [receivedPrompt, setPrompt] = useState<string | null>(null);
