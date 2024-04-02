@@ -16,7 +16,6 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useGameState } from "@/contexts/GameStateProvider";
-import { useAction } from "@/lib/useAction";
 
 interface Content {
   type: "image" | "story";
@@ -32,7 +31,7 @@ export default function EndRoom() {
   const [submitted, setSubmitted] = useState(false);
 
   const { uploadedImgs, prompt, gameState, isHost, players } = useGameState();
-  const { likeDraw, backRoom } = useAction(isHost);
+  // const { likeDraw, backRoom } = useAction(isHost);
 
   const [content, setContent] = useState<Content[]>([]);
 
@@ -88,9 +87,9 @@ export default function EndRoom() {
                     </div>
                     <button
                       className="items-center justify-center disabled:opacity-50"
-                      onClick={() =>
-                        likeDraw(c.user.publicKey, c.user.socketId)
-                      }
+                      // onClick={() =>
+                      //   likeDraw(c.user.publicKey, c.user.socketId)
+                      // }
                       disabled={!isHost}
                     >
                       <svg
@@ -180,7 +179,7 @@ export default function EndRoom() {
                   "bg-primary text-shadow-md absolute bottom-2 right-2 hidden rounded-xl px-1 italic ring-[5px] ring-orange-600 hover:bg-[#f7d726]",
                   isHost && "flex"
                 )}
-                onClick={backRoom}
+                // onClick={backRoom}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

@@ -63,9 +63,14 @@ export const GameStateProvider: FC<{ children: ReactNode }> = ({
     if (!provider || !program || !wallet.publicKey || !playerPda) {
       return;
     }
+
     provider?.connection.getAccountInfo(playerPda).then((accountInfo) => {
       if (!accountInfo) {
         console.log("No player account found, creating one now");
+        setGameState({
+          ...gameState,
+          playerInfo: undefined
+        });
         return;
       }
       const player = program.coder.accounts.decode("player", accountInfo.data);
@@ -94,7 +99,7 @@ export const GameStateProvider: FC<{ children: ReactNode }> = ({
           playerInfo: {
             balance: player.balance,
             games: player.games,
-            avatar: `/avatars/${Object.keys(player.avatar)[0]}.png`,
+            avatar: `/avatars/${camelToSnake(Object.keys(player.avatar)[0])}.png`,
           },
         });
       }
@@ -114,15 +119,15 @@ export const GameStateProvider: FC<{ children: ReactNode }> = ({
       if (!accountInfo) {
         return;
       }
-      const gameState = program.coder.accounts.decode("game", accountInfo.data);
-      console.log();
+      const newGameState = program.coder.accounts.decode("game", accountInfo.data);
+      console.log(newGameState);
       setGameState({
         ...gameState,
-        players: gameState.players,
-        isHost: gameState.host ?? gameState.players[0].equals(wallet.publicKey),
+        players: [newGameState.host, ...newGameState.participants],
+        isHost: newGameState.host ?? newGameState.host.equals(wallet.publicKey),
         prompt: gameState.prompt,
         uploadedImgs: gameState.uploadedImgs,
-        gameState: gameState.status,
+        gameState: Object.keys(newGameState.status)[0] as GameState["gameState"],
       });
     });
 
@@ -130,14 +135,14 @@ export const GameStateProvider: FC<{ children: ReactNode }> = ({
     const gameListner = provider?.connection.onAccountChange(
       gamePda,
       (account) => {
-        const gameState = program.coder.accounts.decode("game", account.data);
+      const newGameState = program.coder.accounts.decode("game", account.data);
         setGameState({
           ...gameState,
-          players: gameState.players,
-          isHost: gameState.host,
+          players: [newGameState.host, ...newGameState.participants],
+          isHost: newGameState.host ?? newGameState.host.equals(wallet.publicKey),
           prompt: gameState.prompt,
           uploadedImgs: gameState.uploadedImgs,
-          gameState: gameState.status,
+          gameState: Object.keys(newGameState.status)[0] as GameState["gameState"],
         });
       }
     );

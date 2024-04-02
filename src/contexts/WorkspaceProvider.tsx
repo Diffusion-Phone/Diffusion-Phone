@@ -25,6 +25,7 @@ type WorkspaceProvider = {
   program?: Program<Pixelana>;
   provider?: AnchorProvider;
   gamePda?: PublicKey;
+  roomId?: string;
   playerPda?: PublicKey;
   joinGame: (roomId: string) => Promise<void>;
   initGame: () => Promise<void>;
@@ -55,6 +56,7 @@ export const WorkspaceProvider = ({
   const [provider, setProviderInner] = useState<AnchorProvider>();
   const [gamePda, setGamePda] = useState<PublicKey>();
   const [playerPda, setPlayerPda] = useState<PublicKey>();
+  const [roomId, setRoomId] = useState<string>();
 
 
   // Anchor program setup
@@ -80,24 +82,13 @@ export const WorkspaceProvider = ({
     if (!wallet?.publicKey || !program || !provider) {
       return 
     }
-    const [playerPda, _] = PublicKey.findProgramAddressSync(
+    const [playerPDA, _] = PublicKey.findProgramAddressSync(
       [Buffer.from("player"), wallet.publicKey.toBuffer()],
       program?.programId
     );
 
-
-    provider?.connection.getAccountInfo(playerPda).then((accountInfo) => {
-      if (!accountInfo) {
-        toast.info("No player account found, creating one now")
-        return
-      }
-      // const player = program.coder.accounts.decode('player', accountInfo.data)
-      setPlayerPda(playerPda);
-    });
-
-    setPlayerPda(playerPda);
-
-  }, [program, provider, wallet?.publicKey])
+    setPlayerPda(playerPDA);
+  }, [program, provider, wallet])
 
   const joinGame = useCallback(
     async (roomId: string) => {
@@ -110,6 +101,7 @@ export const WorkspaceProvider = ({
       );
       await anchorJoinGame({ program, provider, roomId }).then(() => {
         setGamePda(gamePDA);
+        setRoomId(roomId);
       });
     },
     [program, provider]
@@ -129,8 +121,10 @@ export const WorkspaceProvider = ({
       [Buffer.from("game"), Buffer.from(roomId)],
       program.programId
     );
-    await initializeGame({ program, provider, roomId })
-    setGamePda(gamePDA);
+    await initializeGame({ program, provider, roomId }).then(() => {
+      setRoomId(roomId);
+      setGamePda(gamePDA);
+    })
   }, [program, provider, playerPda]);
 
   const initPlayer = useCallback(async (avatar: string) => {
@@ -148,7 +142,7 @@ export const WorkspaceProvider = ({
   }, [program, provider]);
 
   return (
-    <WorkspaceContext.Provider value={{ program, provider, gamePda, playerPda, joinGame, initGame, initPlayer}}>
+    <WorkspaceContext.Provider value={{ program, provider, gamePda, playerPda, joinGame, initGame, initPlayer, roomId}}>
       {children}
     </WorkspaceContext.Provider>
   );

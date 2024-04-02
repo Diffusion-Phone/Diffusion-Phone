@@ -2,7 +2,7 @@
 
 import { useWorkspace } from "@/contexts/WorkspaceProvider";
 import { useGameState } from "@/contexts/GameStateProvider";
-import { useSocketAuth } from "@/contexts/SocketAuthContext";
+// import { useSocketAuth } from "@/contexts/SocketAuthContext";
 import { useCallback } from "react";
 import { IDL, Pixelana } from "../../anchor/target/types/pixelana";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -16,73 +16,6 @@ import {
   getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
 
-// TODO: Would disable this and switch to useAnchorProgram
-export const useAction = (host = false) => {
-  const { socket } = useSocketAuth();
-  const { isHost, gameState } = useGameState();
-
-  const joinGame = useCallback(() => {
-    if (socket) {
-      socket.emit("addPlayer");
-    }
-  }, [socket]);
-
-  const startGame = useCallback(() => {
-    if (socket) {
-      console.log(isHost, gameState);
-      socket.emit("startGame");
-    }
-  }, [socket]);
-
-  const endGame = useCallback(() => {
-    if (socket) {
-      socket.emit("endGame");
-    }
-  }, [socket]);
-
-  const submitPrompt = useCallback(
-    (playerId: string, prompt: string) => {
-      if (socket) {
-        socket.emit("submitPrompt", playerId, prompt);
-      }
-    },
-    [socket]
-  );
-
-  const submitDrawing = useCallback(
-    (playerId: string, drawing: string) => {
-      if (socket) {
-        socket.emit("submitDraw", playerId, drawing);
-      }
-    },
-    [socket]
-  );
-
-  const likeDraw = useCallback(
-    (playerId: string, socketId: string) => {
-      if (socket) {
-        socket.emit("likeDrawing", playerId, socketId);
-      }
-    },
-    [socket]
-  );
-
-  const backRoom = useCallback(() => {
-    if (socket) {
-      socket.emit("backRoom");
-    }
-  }, [socket]);
-
-  return {
-    joinGame,
-    startGame,
-    endGame,
-    submitPrompt,
-    submitDrawing,
-    likeDraw,
-    backRoom,
-  };
-};
 
 //TODO: add a parameter: isHost to make sure he could access the host actions
 export function useAnchorProgram() {
@@ -305,7 +238,7 @@ export async function startGame({
 }: {
   provider?: AnchorProvider;
   program?: Program<Pixelana>;
-  gamePda: PublicKey;
+  gamePda?: PublicKey;
 }) {
   if (!provider || !program) {
     throw new Error("Wallet not connected");

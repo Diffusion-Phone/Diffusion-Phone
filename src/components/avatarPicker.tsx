@@ -66,8 +66,8 @@ export function AvatarPicker() {
     }
   };
   return (
-    <div className="flex w-full flex-col">
-    <div className="flex w-full items-center justify-center ">
+    <div className="flex w-full flex-col items-center ">
+    <div className="flex w-full items-center justify-center">
       <Button
         className="ring-none border-none bg-transparent transition ease-in-out hover:-translate-y-1 hover:scale-110"
         onClick={prev}
@@ -111,7 +111,7 @@ export function AvatarPicker() {
       </Button>
     </div>
     <Button
-      className="ring-offset-3 flex h-[160px] w-[500] items-center justify-center rounded-xl text-[64px] italic ring-8 ring-orange-600 ring-offset-black transition ease-in-out hover:-translate-y-1 hover:scale-110 hover:bg-[#f7d726]"
+      className="mt-10 ring-offset-3 flex h-[160px] w-[680px] items-center justify-center rounded-xl text-[56px] italic ring-8 ring-orange-600 ring-offset-black transition ease-in-out hover:-translate-y-1 hover:scale-110 hover:bg-[#f7d726]"
       onClick={() =>
         initPlayer(snakeToCamel(avatars[chosenIndex].split(".")[0]))
       }

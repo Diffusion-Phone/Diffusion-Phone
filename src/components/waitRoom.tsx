@@ -36,10 +36,11 @@ export function UserCard({ user }: { user: PublicKey }) {
 
 
 export function Room({ users }: RoomProps) {
-  
+  const {roomId} = useWorkspace();
   return (
     <div className="flex flex-col items-center justify-center w-full">
       <h1 className="font-customs text-[50px] text-shadow-custom text-[#8DFCBC]">Room</h1>
+      <span className="text-shadow-custom font-sans text-lg text-[#8DFCBC]">{roomId}</span>
       <h2 className="text-shadow sm:text-shadow-sm md:text-shadow-md lg:text-shadow-lg xl:text-shadow-xl">PLAYERS: {users.length}/7 </h2>
       <div className="flex flex-row border-[5px] w-full border-black rounded-lg overflow-x-auto">
         {users.map((userKey) => (
