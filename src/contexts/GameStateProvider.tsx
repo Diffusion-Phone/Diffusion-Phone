@@ -30,6 +30,7 @@ interface GameState {
   prompt: string;
   playerInfo?: PlayerInfo;
   uploadedImgs: Array<Drawing>;
+  winningDrawing?: Drawing;
   gameState:
     | "none"
     | "waitingForParticipants"
@@ -124,7 +125,7 @@ export const GameStateProvider: FC<{ children: ReactNode }> = ({
       setGameState({
         ...gameState,
         players: [newGameState.host, ...newGameState.participants],
-        isHost: newGameState.host ?? newGameState.host.equals(wallet.publicKey),
+        isHost: gameState.isHost ?? newGameState.host.equals(wallet.publicKey),
         prompt: gameState.prompt,
         uploadedImgs: gameState.uploadedImgs,
         gameState: Object.keys(newGameState.status)[0] as GameState["gameState"],
@@ -135,13 +136,17 @@ export const GameStateProvider: FC<{ children: ReactNode }> = ({
     const gameListner = provider?.connection.onAccountChange(
       gamePda,
       (account) => {
-      const newGameState = program.coder.accounts.decode("game", account.data);
+        const newGameState = program.coder.accounts.decode("game", account.data);
+        if (newGameState.winningDrawing && !gameState.winningDrawing) {
+          toast.success("The winner has been selected!: " + newGameState.winningDrawing.participant.toBase58());
+        }
         setGameState({
           ...gameState,
           players: [newGameState.host, ...newGameState.participants],
-          isHost: newGameState.host ?? newGameState.host.equals(wallet.publicKey),
+          isHost: gameState.isHost ?? newGameState.host.equals(wallet.publicKey),
           prompt: gameState.prompt,
           uploadedImgs: gameState.uploadedImgs,
+          winningDrawing: gameState.winningDrawing,
           gameState: Object.keys(newGameState.status)[0] as GameState["gameState"],
         });
       }

@@ -4,7 +4,13 @@ import { AvatarImage } from "@/components/ui/avatar";
 import Image from "next/image";
 import { type User } from "@/components/waitRoom";
 import { Avatar } from "@radix-ui/react-avatar";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Tooltip,
@@ -12,10 +18,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Button } from "@/components/ui/button";
+import { selectWinner as selectWinnerFn, mintNft as mintNftFn} from "@/lib/useAction";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
 import { useGameState } from "@/contexts/GameStateProvider";
+import { useMutation } from "@tanstack/react-query";
+import { useWorkspace } from "@/contexts/WorkspaceProvider";
 
 interface Content {
   type: "image" | "story";
@@ -23,33 +30,61 @@ interface Content {
   user: User;
 }
 
-const columnStyle = "";
+// const columnStyle = "";
+function Mintdialog({ open }: { open: boolean }) {
+  const {winningDrawing} = useGameState();
+  const { program, provider, gamePda } = useWorkspace();
+  const mintNFT = useMutation({
+    mutationFn: async () => {
+      mintNftFn({provider, program, gamePda, winner:winningDrawing})
+    }
+  })
+  return (
+    <Dialog open={open}>
+      <DialogContent className="bg-secondary">
+        <DialogHeader>
+          <DialogTitle className="font-sans text-white">
+            Mint NFT for the winner: {winningDrawing?.participant.toBase58()}
+          </DialogTitle>
+        </DialogHeader>
+        <Image src={winningDrawing?.drawingRef!} alt="drawing" layout="fill" objectFit="cover" /> 
+        <button onClick={() => mintNFT.mutate()} className="rounded-xl italic ring-[5px] ring-orange-600 hover:bg-[#f7d726] text-shadow-md" disabled={mintNFT.isPending}>
+          Mint
+        </button>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function EndRoom() {
-  const router = useRouter();
   const resultRef = useRef<HTMLDivElement>(null);
   const [submitted, setSubmitted] = useState(false);
-
-  const { uploadedImgs, prompt, gameState, isHost, players } = useGameState();
-  // const { likeDraw, backRoom } = useAction(isHost);
+  const { uploadedImgs, prompt, isHost, players, winningDrawing } = useGameState();
+  const { program, provider, gamePda } = useWorkspace();
 
   const [content, setContent] = useState<Content[]>([]);
 
+  const selectWinner = useMutation({
+    mutationFn: async (winner: number) => selectWinnerFn({program, provider, gamePda, winner}),
+    onSuccess: () => setSubmitted(true),
+  })
+
+
   useEffect(() => {
-    console.log(uploadedImgs, players);
+    // console.log(uploadedImgs, players);
     const allContent = [
       { type: "story", data: prompt, user: players[0] },
-      ...uploadedImgs.map(([publicKey, image]) => {
+      ...uploadedImgs.map((drawing) => {
         return {
           type: "image",
-          data: image,
-          user: players.filter((p) => p.publicKey == publicKey)[0],
+          data: drawing.drawingRef,
+          user: drawing.participant,
         };
       }),
     ] as any[];
-    console.log(allContent);
+    // console.log(allContent);
     setContent(allContent);
-  }, [uploadedImgs]);
+  }, [uploadedImgs, players, prompt]);
 
   useEffect(() => {
     //scroll to bottom with animation
@@ -87,10 +122,10 @@ export default function EndRoom() {
                     </div>
                     <button
                       className="items-center justify-center disabled:opacity-50"
-                      // onClick={() =>
-                      //   likeDraw(c.user.publicKey, c.user.socketId)
-                      // }
-                      disabled={!isHost}
+                      onClick={() =>
+                        selectWinner.mutate(content.indexOf(c) - 1)
+                      }
+                      disabled={!isHost && selectWinner.status === "pending"}
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -203,51 +238,7 @@ export default function EndRoom() {
           </TooltipProvider>
         </div>
       </div>
+      <Mintdialog open={submitted} />
     </div>
   );
 }
-
-// const [content, setContent] = useState<Content[]>([
-// {
-//   type: "story",
-//   data: "A Hugging Face Model",
-//   user: {
-//     socketId: "9",
-//     name: "User 0",
-//     avatar: "https://picsum.photos/200/300",
-//     isHost: true,
-//     publicKey: "123"
-//   }
-// },
-// {
-//   type: "image",
-//   data: "https://picsum.photos/200/300",
-//   user: {
-//     socketId: "8",
-//     name: "User 1",
-//     avatar: "https://picsum.photos/200/300",
-//     isHost: false,
-//     publicKey: "123"
-//   }
-// },
-// {
-//   type: "image",
-//   data: "https://picsum.photos/200/300",
-//   user: {
-//     socketId: "1",
-//     name: "User 2",
-//     avatar: "https://picsum.photos/200/300",
-//     isHost: false,
-//     publicKey: "123"
-//   }
-// },
-// ]);
-
-// const onBackRoom = () => {
-//   socket?.emit("backRoom");
-// };
-
-// const onLike = (publicKey: string, playerId: string) => {
-//   socket?.emit("like", publicKey, playerId);
-//   setSubmitted(true);
-// };

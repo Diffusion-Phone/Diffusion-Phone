@@ -1,5 +1,4 @@
 'use client';
-import { useSocketAuth } from "@/contexts/SocketAuthContext";
 import { useEffect, useState } from "react";
 import {
   Dialog,
@@ -42,7 +41,7 @@ const buttonStyle =
 export default function PromptRoom() {
   const [timeLeft, setTimeLeft] = useState(60);
   const {provider, program, gamePda} = useWorkspace();
-  const { isHost, gameState } = useGameState();
+  const { gameState } = useGameState();
 
   const submitStory = useMutation({
     mutationFn: async (story: string) => {
@@ -55,7 +54,7 @@ export default function PromptRoom() {
     if (gameState === "waitingForDrawings") {
       setSubmitted(true);
     }
-  });
+  }, [gameState]);
 
   useEffect(() => {
     // Exit early when we reach 0
@@ -134,7 +133,7 @@ export default function PromptRoom() {
               setStory(e.currentTarget.value);
             }}
           />
-          <Button className={buttonStyle} onClick={() => submitStory.mutate(story)}>
+          <Button className={buttonStyle} onClick={() => submitStory.mutate(story)} disabled={submitStory.status === "pending"}>
             Submit
           </Button>
         </div>

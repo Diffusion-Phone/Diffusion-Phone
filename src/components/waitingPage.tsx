@@ -85,7 +85,7 @@ export default function WaitRoom() {
               </svg>
             )}
           </div>
-          {buttonEnabled ? "Let's Go!" : "Waiting for host to start..."}
+          {buttonEnabled ? "Let's Go!" : "Be Patient!"}
         </Button>
         {/* TODO: possibly replace with user's balance and user's total wins*/}
         {/* <div className="mt-10 ">

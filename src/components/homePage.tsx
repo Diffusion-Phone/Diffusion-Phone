@@ -1,10 +1,7 @@
 'use client';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { SvgIcon } from "@/components/customSvg";
 import { Button } from "./ui/button";
 import { useState } from "react";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -16,9 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "./ui/input";
 import { useWorkspace } from "@/contexts/WorkspaceProvider";
-import { join } from "path";
-import { useQuery } from "@tanstack/react-query";
-import { PublicKey } from "@solana/web3.js";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useGameState } from "@/contexts/GameStateProvider";
 import { AvatarPicker } from "./avatarPicker";
 
@@ -56,18 +51,19 @@ function JoinRoomDialog({
   );
 }
 
-const genRandomName = () => {
-  let randomName = "";
-  const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  for (let i = 0; i < 6; i++) {
-    const randomIndex = Math.floor(Math.random() * characters.length);
-    randomName += characters[randomIndex];
-  }
-  return randomName;
-};
-
 export function HomePage() {
-  const { initGame, joinGame } = useWorkspace();
+  const { initGame: initGameFn, joinGame: joinGameFn} = useWorkspace();
+
+  const joinGame = useMutation({
+    mutationFn: async (roomId: string) => {
+      await joinGameFn(roomId);
+    },
+  });
+  const initGame = useMutation({
+    mutationFn: async () => {
+      await initGameFn();
+    },
+  })
   const { playerInfo } = useGameState();
   return (
     <div className="w-[1082px] h-[698px] absolute border-4 border-gray-300 shadow-inner rounded-lg left-[50%] top-[50%] -translate-x-1/2 -translate-y-1/2 lg:scale-95 md:scale-90 sm:scale-[0.6]">
@@ -84,16 +80,17 @@ export function HomePage() {
             <div className="items-center justify-center flex flex-row gap-10">
               <Button
                 className="ring-offset-3 flex h-[80px] w-[200px] items-center justify-center rounded-xl text-[32px] italic ring-8 ring-orange-600 ring-offset-black transition ease-in-out hover:-translate-y-1 hover:scale-110 hover:bg-[#f7d726]"
-                onClick={() => initGame()}
+                onClick={() => initGame.mutate()}
+                disabled={initGame.status === "pending"}
               >
                 New Game!
               </Button>
               <JoinRoomDialog
                 onClick={(roomId) => {
-                  joinGame(roomId);
+                  joinGame.mutate(roomId);
                 }}
               >
-                <Button className="ring-offset-3 flex h-[80px] w-[200px] items-center justify-center rounded-xl text-[32px] italic ring-8 ring-orange-600 ring-offset-black transition ease-in-out hover:-translate-y-1 hover:scale-110 hover:bg-[#f7d726]">
+                <Button className="ring-offset-3 flex h-[80px] w-[200px] items-center justify-center rounded-xl text-[32px] italic ring-8 ring-orange-600 ring-offset-black transition ease-in-out hover:-translate-y-1 hover:scale-110 hover:bg-[#f7d726]" disabled={joinGame.status === "pending"}>
                   Join!
                 </Button>
               </JoinRoomDialog>

@@ -147,6 +147,7 @@ export default function DrawRoom() {
                 e.preventDefault();
                 submitImage.mutate(aiImage!);
               }}
+              // disabled={!aiImage || submitImage.status === "pending"}
             >
               Submit
             </Button>

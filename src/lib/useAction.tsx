@@ -285,16 +285,16 @@ export async function submitStory({
     throw new Error("Game not initialized");
   }
   const payer = provider.wallet;
-  const [playerPda, _playerBump] = PublicKey.findProgramAddressSync(
-    [Buffer.from("player"), payer.publicKey.toBuffer()],
-    program.programId
-  );
+  // const [playerPda, _playerBump] = PublicKey.findProgramAddressSync(
+  //   [Buffer.from("player"), payer.publicKey.toBuffer()],
+  //   program.programId
+  // );
 
   program.methods
     .submitStory(story)
     .accounts({
       game: gamePda,
-      host: playerPda,
+      host: payer.publicKey,
     })
     .rpc()
     .then((res) => {
@@ -435,13 +435,17 @@ export async function mintNft({
   provider?: AnchorProvider;
   program?: Program<Pixelana>;
   gamePda?: PublicKey;
-  winner: { participant: PublicKey; drawingRef: string };
+  winner?: { participant: PublicKey; drawingRef: string };
 }) {
   if (!provider || !program) {
     throw new Error("Wallet not connected");
   }
   if (!gamePda) {
     throw new Error("Game not initialized");
+  }
+
+  if (!winner) {
+    throw new Error("Winner not selected");
   }
 
   let mint = new Keypair();
