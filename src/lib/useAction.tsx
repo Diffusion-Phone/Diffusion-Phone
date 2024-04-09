@@ -2,12 +2,12 @@
 
 import { useWorkspace } from "@/contexts/WorkspaceProvider";
 import { useGameState } from "@/contexts/GameStateProvider";
-import { useSocketAuth } from "@/contexts/SocketAuthContext";
+// import { useSocketAuth } from "@/contexts/SocketAuthContext";
 import { useCallback } from "react";
 import { IDL, Pixelana } from "../../anchor/target/types/pixelana";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { programId } from "@/lib/constant";
-import { AnchorProvider, Program } from "@coral-xyz/anchor";
+import { AnchorProvider, Program, BN} from "@coral-xyz/anchor";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import {
@@ -16,73 +16,6 @@ import {
   getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
 
-// TODO: Would disable this and switch to useAnchorProgram
-export const useAction = (host = false) => {
-  const { socket } = useSocketAuth();
-  const { isHost, gameState } = useGameState();
-
-  const joinGame = useCallback(() => {
-    if (socket) {
-      socket.emit("addPlayer");
-    }
-  }, [socket]);
-
-  const startGame = useCallback(() => {
-    if (socket) {
-      console.log(isHost, gameState);
-      socket.emit("startGame");
-    }
-  }, [socket]);
-
-  const endGame = useCallback(() => {
-    if (socket) {
-      socket.emit("endGame");
-    }
-  }, [socket]);
-
-  const submitPrompt = useCallback(
-    (playerId: string, prompt: string) => {
-      if (socket) {
-        socket.emit("submitPrompt", playerId, prompt);
-      }
-    },
-    [socket]
-  );
-
-  const submitDrawing = useCallback(
-    (playerId: string, drawing: string) => {
-      if (socket) {
-        socket.emit("submitDraw", playerId, drawing);
-      }
-    },
-    [socket]
-  );
-
-  const likeDraw = useCallback(
-    (playerId: string, socketId: string) => {
-      if (socket) {
-        socket.emit("likeDrawing", playerId, socketId);
-      }
-    },
-    [socket]
-  );
-
-  const backRoom = useCallback(() => {
-    if (socket) {
-      socket.emit("backRoom");
-    }
-  }, [socket]);
-
-  return {
-    joinGame,
-    startGame,
-    endGame,
-    submitPrompt,
-    submitDrawing,
-    likeDraw,
-    backRoom,
-  };
-};
 
 //TODO: add a parameter: isHost to make sure he could access the host actions
 export function useAnchorProgram() {
@@ -91,59 +24,60 @@ export function useAnchorProgram() {
   const {} = useWallet();
   const { provider, program } = useWorkspace();
 
-  if (!provider || !program || !gamePda) {
-    throw new Error("Workspace not initialized");
-  }
+  // if (!provider || !program || !gamePda) {
+  //   throw new Error("Workspace not initialized");
+  // }
 
-  const getGameAccount = useQuery({
-    queryKey: ["game"],
-    queryFn: () => program.account.game.fetch(gamePda),
-  });
+  // TODO: create each of this inside the component
+  // const getGameAccount = useQuery({
+  //   queryKey: ["game"],
+  //   queryFn: () => program.account.game.fetch(gamePda),
+  // });
 
-  const mutateDeposit = useMutation({
-    mutationFn: ({ amount }: { amount: number }) =>
-      depositToVault({ provider, program, amount }),
-  });
+  // const mutateDeposit = useMutation({
+  //   mutationFn: ({ amount }: { amount: number }) =>
+  //     depositToVault({ provider, program, amount }),
+  // });
 
-  const mutateStartGame = useMutation({
-    mutationFn: () => startGame({ provider, program, gamePda }),
-  });
+  // const mutateStartGame = useMutation({
+  //   mutationFn: () => startGame({ provider, program, gamePda }),
+  // });
 
-  const mutateSubmitStory = useMutation({
-    mutationFn: ({ story }: { story: string }) =>
-      submitStory({ provider, program, gamePda, story }),
-  });
+  // const mutateSubmitStory = useMutation({
+  //   mutationFn: ({ story }: { story: string }) =>
+  //     submitStory({ provider, program, gamePda, story }),
+  // });
 
-  const mutateSubmitImage = useMutation({
-    mutationFn: ({ image }: { image: string }) =>
-      submitImage({ provider, program, gamePda, image }),
-  });
+  // const mutateSubmitImage = useMutation({
+  //   mutationFn: ({ image }: { image: string }) =>
+  //     submitImage({ provider, program, gamePda, image }),
+  // });
 
-  const mutateSelectWinner = useMutation({
-    mutationFn: ({ winner }: { winner: number }) =>
-      selectWinner({ provider, program, gamePda, winner }),
-  });
+  // const mutateSelectWinner = useMutation({
+  //   mutationFn: ({ winner }: { winner: number }) =>
+  //     selectWinner({ provider, program, gamePda, winner }),
+  // });
 
-  const mutateGenerateImage = useMutation({
-    mutationFn: (prompt: string) =>
-      generateImage({ provider, program, gamePda, prompt }),
-  });
+  // const mutateGenerateImage = useMutation({
+  //   mutationFn: (prompt: string) =>
+  //     generateImage({ provider, program, gamePda, prompt }),
+  // });
 
-  const mutateMintNft = useMutation({
-    mutationFn: (winner: { participant: PublicKey; drawingRef: string }) =>
-      mintNft({ provider, program, gamePda, winner }),
-  });
+  // const mutateMintNft = useMutation({
+  //   mutationFn: (winner: { participant: PublicKey; drawingRef: string }) =>
+  //     mintNft({ provider, program, gamePda, winner }),
+  // });
 
-  return {
-    getGameAccount,
-    mutateDeposit,
-    mutateStartGame,
-    mutateSubmitStory,
-    mutateSubmitImage,
-    mutateSelectWinner,
-    mutateGenerateImage,
-    mutateMintNft,
-  };
+  // return {
+  //   getGameAccount,
+  //   mutateDeposit,
+  //   mutateStartGame,
+  //   mutateSubmitStory,
+  //   mutateSubmitImage,
+  //   mutateSelectWinner,
+  //   mutateGenerateImage,
+  //   mutateMintNft,
+  // };
 }
 
 export async function initializeGame({
@@ -164,7 +98,7 @@ export async function initializeGame({
     program.programId
   );
   const [gamePda, gameBump] = PublicKey.findProgramAddressSync(
-    [Buffer.from("game"), payer.publicKey.toBuffer()],
+    [Buffer.from("game"), Buffer.from(roomId)],
     program.programId
   );
   await program.methods
@@ -202,6 +136,7 @@ export async function initialUser({
   );
   const playerArg: Record<string, unknown> = {};
   playerArg[avatar] = {};
+  console.log("playerArg", playerArg);
   const player = await program.methods
     // TODO: fix the type here
     .initializePlayer(playerArg as any)
@@ -262,8 +197,8 @@ export async function depositToVault({
   program,
   amount,
 }: {
-  provider: AnchorProvider;
-  program: Program<Pixelana>;
+  provider?: AnchorProvider;
+  program?: Program<Pixelana>;
   amount: number;
 }) {
   if (!provider || !program) {
@@ -281,7 +216,7 @@ export async function depositToVault({
   );
 
   await program.methods
-    .depositToVault(new anchor.BN(amount * LAMPORTS_PER_SOL))
+    .depositToVault(new BN(amount * LAMPORTS_PER_SOL))
     .accounts({
       depositor: payer.publicKey,
       vault: vaultPda,
@@ -301,9 +236,9 @@ export async function startGame({
   program,
   gamePda,
 }: {
-  provider: AnchorProvider;
-  program: Program<Pixelana>;
-  gamePda: PublicKey;
+  provider?: AnchorProvider;
+  program?: Program<Pixelana>;
+  gamePda?: PublicKey;
 }) {
   if (!provider || !program) {
     throw new Error("Wallet not connected");
@@ -338,9 +273,9 @@ export async function submitStory({
   gamePda,
   story,
 }: {
-  provider: AnchorProvider;
-  program: Program<Pixelana>;
-  gamePda: PublicKey;
+  provider?: AnchorProvider;
+  program?: Program<Pixelana>;
+  gamePda?: PublicKey;
   story: string;
 }) {
   if (!provider || !program) {
@@ -350,16 +285,16 @@ export async function submitStory({
     throw new Error("Game not initialized");
   }
   const payer = provider.wallet;
-  const [playerPda, _playerBump] = PublicKey.findProgramAddressSync(
-    [Buffer.from("player"), payer.publicKey.toBuffer()],
-    program.programId
-  );
+  // const [playerPda, _playerBump] = PublicKey.findProgramAddressSync(
+  //   [Buffer.from("player"), payer.publicKey.toBuffer()],
+  //   program.programId
+  // );
 
   program.methods
     .submitStory(story)
     .accounts({
       game: gamePda,
-      host: playerPda,
+      host: payer.publicKey,
     })
     .rpc()
     .then((res) => {
@@ -376,9 +311,9 @@ export async function submitImage({
   gamePda,
   image,
 }: {
-  provider: AnchorProvider;
-  program: Program<Pixelana>;
-  gamePda: PublicKey;
+  provider?: AnchorProvider;
+  program?: Program<Pixelana>;
+  gamePda?: PublicKey;
   image: string;
 }) {
   if (!provider || !program) {
@@ -412,10 +347,11 @@ export async function generateImage({
   provider,
   program,
   gamePda,
+  prompt
 }: {
-  provider: AnchorProvider;
-  program: Program<Pixelana>;
-  gamePda: PublicKey;
+  provider?: AnchorProvider;
+  program?: Program<Pixelana>;
+  gamePda?: PublicKey;
   prompt: string;
 }) {
   if (!provider || !program) {
@@ -458,9 +394,9 @@ export async function selectWinner({
   gamePda,
   winner,
 }: {
-  provider: AnchorProvider;
-  program: Program<Pixelana>;
-  gamePda: PublicKey;
+  provider?: AnchorProvider;
+  program?: Program<Pixelana>;
+  gamePda?: PublicKey;
   winner: number;
 }) {
   if (!provider || !program) {
@@ -496,16 +432,20 @@ export async function mintNft({
   gamePda,
   winner,
 }: {
-  provider: AnchorProvider;
-  program: Program<Pixelana>;
-  gamePda: PublicKey;
-  winner: { participant: PublicKey; drawingRef: string };
+  provider?: AnchorProvider;
+  program?: Program<Pixelana>;
+  gamePda?: PublicKey;
+  winner?: { participant: PublicKey; drawingRef: string };
 }) {
   if (!provider || !program) {
     throw new Error("Wallet not connected");
   }
   if (!gamePda) {
     throw new Error("Game not initialized");
+  }
+
+  if (!winner) {
+    throw new Error("Winner not selected");
   }
 
   let mint = new Keypair();

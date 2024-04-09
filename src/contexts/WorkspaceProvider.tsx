@@ -22,19 +22,18 @@ import { toast } from "sonner";
 
 // Define the structure of the Program context state
 type WorkspaceProvider = {
-  program: Program<Pixelana> | null;
-  provider: AnchorProvider | null;
+  program?: Program<Pixelana>;
+  provider?: AnchorProvider;
   gamePda?: PublicKey;
+  roomId?: string;
   playerPda?: PublicKey;
   joinGame: (roomId: string) => Promise<void>;
   initGame: () => Promise<void>;
-  initPlayer: () => Promise<void>;
+  initPlayer: (avatar: string) => Promise<void>;
 };
 
 // Create the context with default values
 const WorkspaceContext = createContext<WorkspaceProvider>({
-  program: null,
-  provider: null,
   joinGame: async (roomId: string) => {},
   initGame: async () => {},
   initPlayer: async () => {},
@@ -53,10 +52,12 @@ export const WorkspaceProvider = ({
   const { connection } = useConnection();
 
   // State variable to hold the program instance
-  const [program, setProgram] = useState<Program<Pixelana> | null>(null);
-  const [provider, setProviderInner] = useState<AnchorProvider | null>(null);
+  const [program, setProgram] = useState<Program<Pixelana>>();
+  const [provider, setProviderInner] = useState<AnchorProvider>();
   const [gamePda, setGamePda] = useState<PublicKey>();
   const [playerPda, setPlayerPda] = useState<PublicKey>();
+  const [roomId, setRoomId] = useState<string>();
+
 
   // Anchor program setup
   const setup = useCallback(async () => {
@@ -76,6 +77,19 @@ export const WorkspaceProvider = ({
     setup();
   }, [setup]);
 
+
+  useEffect(() => {
+    if (!wallet?.publicKey || !program || !provider) {
+      return 
+    }
+    const [playerPDA, _] = PublicKey.findProgramAddressSync(
+      [Buffer.from("player"), wallet.publicKey.toBuffer()],
+      program?.programId
+    );
+
+    setPlayerPda(playerPDA);
+  }, [program, provider, wallet])
+
   const joinGame = useCallback(
     async (roomId: string) => {
       if (!program || !provider) {
@@ -87,6 +101,7 @@ export const WorkspaceProvider = ({
       );
       await anchorJoinGame({ program, provider, roomId }).then(() => {
         setGamePda(gamePDA);
+        setRoomId(roomId);
       });
     },
     [program, provider]
@@ -106,23 +121,28 @@ export const WorkspaceProvider = ({
       [Buffer.from("game"), Buffer.from(roomId)],
       program.programId
     );
-    await initializeGame({ program, provider, roomId })
-    setGamePda(gamePDA);
-  }, [program, provider]);
+    await initializeGame({ program, provider, roomId }).then(() => {
+      setRoomId(roomId);
+      setGamePda(gamePDA);
+    })
+  }, [program, provider, playerPda]);
 
-  const initPlayer = useCallback(async () => {
+  const initPlayer = useCallback(async (avatar: string) => {
     if (!program || !provider) {
       toast.error("Program or provider not found");
       return;
     }
-    await initialUser({ program, provider}).then((playerPDA) => {
+    try {
+      const playerPDA = await initialUser({ program, provider, avatar})
+      console.log("playerPDA", playerPDA)
       setPlayerPda(playerPDA);
-    })
-    
+    } catch (error) {
+      console.log(error)
+    }
   }, [program, provider]);
 
   return (
-    <WorkspaceContext.Provider value={{ program, provider, gamePda, playerPda, joinGame, initGame, initPlayer}}>
+    <WorkspaceContext.Provider value={{ program, provider, gamePda, playerPda, joinGame, initGame, initPlayer, roomId}}>
       {children}
     </WorkspaceContext.Provider>
   );

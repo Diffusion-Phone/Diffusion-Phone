@@ -11,7 +11,7 @@ pub const SEED_VAULT : &[u8] = b"vault";
 pub const SEED_GAME: &[u8] = b"game";
 pub const SEED_NFT_AUTHORITY: &[u8] = b"nft_authority";
 
-declare_id!("5a7QKfEaeBPo335z1eeB3pHDQ6vUAraqKLJFMUWEhmP6");
+declare_id!("EhYKKMJa1vcPw2hGE1Tfn6SXeEhcwbS4kzDwTd4RXpeC");
 
 #[program]
 pub mod pixelana {
@@ -72,7 +72,7 @@ pub mod pixelana {
 
     pub fn initialize_player(ctx: Context<InitializePlayer>, avatar: Avatar) -> Result<()> {
         let player = &mut ctx.accounts.player;
-        player.avatar = avatar;
+        player.set_avatar(avatar);
         // player.current_game = None;
         // player.balance = 0;
         // player.games = 0;
@@ -386,6 +386,8 @@ pub struct Player {
     pub current_game: Option<Pubkey>, // 32 + 1
     pub balance: u64, // 8
     pub games: u64, // 8
+    //TODO: make this work
+    // pub wins: u64, // 8
     pub avatar: Avatar, // 1
 }
 
@@ -410,6 +412,10 @@ impl Player {
     pub fn increase_balance(&mut self, amount: u64) {
         self.balance += amount;
     }
+
+    pub fn set_avatar(&mut self, avatar: Avatar) {
+        self.avatar = avatar;
+    }   
 
     pub fn decrease_balance(&mut self, amount: u64) {
         self.balance -= amount;
@@ -501,6 +507,9 @@ pub struct SelectWinner<'info> {
     #[account(mut)]
     pub game: Account<'info, Game>,
     pub host: Signer<'info>,
+    //TODO: make this work
+    // #[account(mut)]
+    // pub selected: Account<'info, Player>,
 }
 
 #[derive(Accounts)]
@@ -626,3 +635,4 @@ impl Default for Avatar {
         Avatar::LifeInTheBalance
     }
 }
+// space = 8 + 32 + 1 + 8 + 8 + 8 + 1// std::mem::size_of::<Player>(), // Adjust space according to your needs

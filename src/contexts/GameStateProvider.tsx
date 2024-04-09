@@ -1,4 +1,4 @@
-'use client'
+'use client';
 import React, {
   createContext,
   useContext,
@@ -7,25 +7,38 @@ import React, {
   FC,
   ReactNode,
 } from "react";
-import { useSocketAuth } from "./SocketAuthContext";
-import { type User } from "@/components/waitRoom";
 import { toast } from "sonner";
 import { useWorkspace } from "./WorkspaceProvider";
-import { Pixelana } from "../../anchor/target/types/pixelana";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { camelToSnake } from "@/lib/utils";
+import { type PublicKey } from "@solana/web3.js";
+
+export interface PlayerInfo {
+  balance: number;
+  games: number;
+  avatar: string;
+}
+
+export interface Drawing {
+  participant: PublicKey,
+  drawingRef: string;
+}
 
 interface GameState {
-  players: Array<User>;
+  players: Array<PublicKey>;
   isHost: boolean;
   prompt: string;
-  uploadedImgs: Array<[string, string]>;
+  playerInfo?: PlayerInfo;
+  uploadedImgs: Array<Drawing>;
+  winningDrawing?: Drawing;
   gameState:
     | "none"
-    // | "init"
-    | "waitingForPlayers"
-    | "waitingForPrompt"
-    | "waitingForDraw"
-    | "ended";
-  leaderBoard: Array<[string, string]>;
+    | "waitingForParticipants"
+    | "waitingForStory"
+    | "waitingForDrawings"
+    | "selectingWinner"
+    | "waitingForMinting"
+    | "completed";
 }
 
 const defaultGameState: GameState = {
@@ -34,7 +47,6 @@ const defaultGameState: GameState = {
   prompt: "",
   uploadedImgs: [],
   gameState: "none",
-  leaderBoard: [],
 };
 
 const GameStateContext = createContext<GameState>(defaultGameState);
@@ -44,115 +56,105 @@ export const useGameState = () => useContext(GameStateContext);
 export const GameStateProvider: FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  // TODO: listen to the game state change from the game account, remove all socket thing
+  const { gamePda, program, provider, playerPda } = useWorkspace();
+  const wallet = useWallet();
 
-  const {gamePda, program, provider} = useWorkspace();
   const [gameState, setGameState] = useState<GameState>(defaultGameState);
-
-  // TODO: should fully remove this socket provider 
-  // const { socket } = useSocketAuth();
-
   useEffect(() => {
-
-    if (!provider || !gamePda || !program) {
+    if (!provider || !program || !wallet.publicKey || !playerPda) {
       return;
     }
-    // TODO: have to align the type between on chain data and the game state
-    const gameListner = provider?.connection.onAccountChange(gamePda, (account) => {
-      const gameState = program.coder.accounts.decode('Game', account.data)
+
+    provider?.connection.getAccountInfo(playerPda).then((accountInfo) => {
+      if (!accountInfo) {
+        console.log("No player account found, creating one now");
+        setGameState({
+          ...gameState,
+          playerInfo: undefined
+        });
+        return;
+      }
+      const player = program.coder.accounts.decode("player", accountInfo.data);
+      console.log(camelToSnake(Object.keys(player.avatar)[0]));
       setGameState({
-        players: gameState.players,
-        isHost: gameState.isHost,
-        prompt: gameState.prompt,
-        uploadedImgs: gameState.uploadedImgs,
-        gameState: gameState.gameState,
-        leaderBoard: gameState.leaderBoard,
+        ...gameState,
+        playerInfo: {
+          balance: player.balance.toNumber() / 1000000000,
+          games: player.games.toNumber(),
+          avatar: `/avatars/${camelToSnake(Object.keys(player.avatar)[0])}.png`,
+        },
       });
-    })
+    });
+
+    const playerListner = provider?.connection.onAccountChange(
+      playerPda,
+      (account) => {
+        console.log("player account", account);
+        if (!account.data) {
+          return;
+        }
+        const player = program.coder.accounts.decode("player", account.data);
+        console.log(player);
+        setGameState({
+          ...gameState,
+          playerInfo: {
+            balance: player.balance,
+            games: player.games,
+            avatar: `/avatars/${camelToSnake(Object.keys(player.avatar)[0])}.png`,
+          },
+        });
+      }
+    );
 
     return () => {
-      provider.connection.removeAccountChangeListener(gameListner)
+      provider.connection.removeAccountChangeListener(playerListner);
+    };
+  }, [provider, program, wallet, playerPda]);
+
+  useEffect(() => {
+    if (!provider || !program || !wallet.publicKey || !gamePda) {
+      return;
     }
-  }, [gamePda, provider, program])
 
-  // useEffect(() => {
-  //   if (socket) {
-  //     socket.on("gameState", (newGameState: GameState) => {
-  //       setGameState(newGameState);
-  //     });
+    provider?.connection.getAccountInfo(gamePda).then((accountInfo) => {
+      if (!accountInfo) {
+        return;
+      }
+      const newGameState = program.coder.accounts.decode("game", accountInfo.data);
+      console.log(newGameState);
+      setGameState({
+        ...gameState,
+        players: [newGameState.host, ...newGameState.participants],
+        isHost: gameState.isHost ?? newGameState.host.equals(wallet.publicKey),
+        prompt: gameState.prompt,
+        uploadedImgs: gameState.uploadedImgs,
+        gameState: Object.keys(newGameState.status)[0] as GameState["gameState"],
+      });
+    });
 
-  //     socket.on('disconnect', () => {
-  //       setGameState(defaultGameState)
-  //     })
-
-  //     socket.on("goBackLobby", () => {
-  //       setGameState((prev) => ({
-  //         ...prev,
-  //         uploadedImgs: [],
-  //         gameState: "waitingForPlayers",
-  //       }));
-  //     })
-
-  //     socket.on("updatePlayers", (players: Array<User>) => {
-  //       setGameState((prev) => ({
-  //         ...prev,
-  //         players,
-  //         isHost: prev.isHost || players.length === 1,
-  //         gameState: "waitingForPlayers",
-  //       }));
-  //     });
-
-  //     socket.on("updateLeaderBoard", (leaderBoard: Array<[string, string]>) => {
-  //       setGameState((prev) => ({
-  //         ...prev,
-  //         leaderBoard,
-  //       }));
-  //     });
-
-  //     socket.on("promptStart", (_) => {
-  //       console.log("promptStart")
-  //       setGameState((prev) => ({
-  //         ...prev,
-  //         gameState: "waitingForPrompt",
-  //       }));
-  //     });
-  //     socket.on("promptFinished", (prompt: string) => {
-  //       setGameState((prev) => ({
-  //         ...prev,
-  //         prompt,
-  //         gameState: "waitingForDraw",
-  //       }));
-  //     });
-
-  //     socket.on("draw", (draw: [string, string]) => {
-  //       setGameState((prev) => ({
-  //         ...prev,
-  //         uploadedImgs: [...prev.uploadedImgs, draw],
-  //       }));
-  //     });
-
-  //     socket.on("endGame", () => {
-  //       setGameState((prev) => ({ ...prev, gameState: "ended" }));
-  //     });
-
-  //     socket.on("bestImage", (playerId: string, exploreUrl) => {
-  //       toast.success(
-  //         " The best image come from: " +
-  //           playerId +
-  //           " and the url is: " +
-  //           exploreUrl,
-  //       );
-  //     });
-
-  //     return () => {
-  //       socket.off("gameState");
-  //       socket.off("updatePlayers");
-  //       socket.off("prompt");
-  //       socket.off("draw");
-  //       socket.off("endGame");
-  //     };
-  //   }
-  // }, [socket]);
+    // TODO: have to align the type between on chain data and the game state
+    const gameListner = provider?.connection.onAccountChange(
+      gamePda,
+      (account) => {
+        const newGameState = program.coder.accounts.decode("game", account.data);
+        if (newGameState.winningDrawing && !gameState.winningDrawing) {
+          toast.success("The winner has been selected!: " + newGameState.winningDrawing.participant.toBase58());
+        }
+        setGameState({
+          ...gameState,
+          players: [newGameState.host, ...newGameState.participants],
+          isHost: gameState.isHost ?? newGameState.host.equals(wallet.publicKey),
+          prompt: gameState.prompt,
+          uploadedImgs: gameState.uploadedImgs,
+          winningDrawing: gameState.winningDrawing,
+          gameState: Object.keys(newGameState.status)[0] as GameState["gameState"],
+        });
+      }
+    );
+    return () => {
+      provider.connection.removeAccountChangeListener(gameListner);
+    };
+  }, [gamePda, provider, program]);
 
   return (
     <GameStateContext.Provider value={gameState}>
