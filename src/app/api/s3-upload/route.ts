@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { Content } from "@radix-ui/react-dialog";
 
 const s3Client = new S3Client({
     region: process.env.NEXT_PUBLIC_AWS_S3_REGION || '',
@@ -16,9 +17,15 @@ async function uploadFileToS3(buffer: Buffer, fileName: string) {
 
     const params = {
         Bucket: process.env.NEXT_PUBLIC_AWS_S3_BUCKET_NAME || '',
-        Key: fileName,
+        Key: `${fileName}-${Date.now()}`,
         Body: fileBuffer,
+        ContentType: "image/jpeg",
     };
+
+    const command = new PutObjectCommand(params);
+    await s3Client.send(command);
+
+    return fileName;
 }
 
 
