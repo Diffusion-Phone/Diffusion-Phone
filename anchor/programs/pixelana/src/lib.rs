@@ -11,7 +11,7 @@ pub const SEED_VAULT : &[u8] = b"vault";
 pub const SEED_GAME: &[u8] = b"game";
 pub const SEED_NFT_AUTHORITY: &[u8] = b"nft_authority";
 
-declare_id!("3pWVQatHK7c1f2ohgeW9baJuSh7JccmWgHSpkLVym973");
+declare_id!("EhYKKMJa1vcPw2hGE1Tfn6SXeEhcwbS4kzDwTd4RXpeC");
 
 #[program]
 pub mod pixelana {
@@ -70,8 +70,9 @@ pub mod pixelana {
         Ok(())
     }
 
-    pub fn initialize_player(ctx: Context<InitializePlayer>) -> Result<()> {
-        // let player = &mut ctx.accounts.player;
+    pub fn initialize_player(ctx: Context<InitializePlayer>, avatar: Avatar) -> Result<()> {
+        let player = &mut ctx.accounts.player;
+        player.set_avatar(avatar);
         // player.current_game = None;
         // player.balance = 0;
         // player.games = 0;
@@ -384,10 +385,14 @@ pub struct Vault {
 pub struct Player {
     pub current_game: Option<Pubkey>, // 32 + 1
     pub balance: u64, // 8
-    pub games: u64 // 8
+    pub games: u64, // 8
+    //TODO: make this work
+    // pub wins: u64, // 8
+    pub avatar: Avatar, // 1
 }
 
 impl Player {
+
     pub fn pda(owner: Pubkey) -> (Pubkey, u8) {
         Pubkey::find_program_address(&[SEED_PLAYER, owner.as_ref()], &crate::ID)
     }
@@ -407,6 +412,10 @@ impl Player {
     pub fn increase_balance(&mut self, amount: u64) {
         self.balance += amount;
     }
+
+    pub fn set_avatar(&mut self, avatar: Avatar) {
+        self.avatar = avatar;
+    }   
 
     pub fn decrease_balance(&mut self, amount: u64) {
         self.balance -= amount;
@@ -432,7 +441,7 @@ pub struct InitializePlayer<'info> {
         seeds = [SEED_PLAYER, payer.key.as_ref()],
         bump,
         payer = payer,
-        space = 8 + 32 + 1 + 8 + 8// std::mem::size_of::<Player>(), // Adjust space according to your needs
+        space = 8 + 32 + 1 + 8 + 8 + 1// std::mem::size_of::<Player>(), // Adjust space according to your needs
     )]
     pub player: Account<'info, Player>,
 
@@ -498,6 +507,9 @@ pub struct SelectWinner<'info> {
     #[account(mut)]
     pub game: Account<'info, Game>,
     pub host: Signer<'info>,
+    //TODO: make this work
+    // #[account(mut)]
+    // pub selected: Account<'info, Player>,
 }
 
 #[derive(Accounts)]
@@ -578,3 +590,49 @@ pub enum GameError {
     #[msg("Can't initialize metadata pointer")]
     InvalidMintAccountSpace
 }
+
+
+
+#[derive(AnchorDeserialize, AnchorSerialize, PartialEq, Eq, Clone, Debug)]
+pub enum Avatar {
+    LifeInTheBalance,
+    PiercedHeart,
+    Haunting,
+    SkeletalHand,
+    Sarcophagus,
+    Spectre,
+    ShamblingZombie,
+    Oni,
+    DeathZone,
+    Telefrag,
+    HalfDead,
+    MorgueFeet,
+    DeadHead,
+    Anubis,
+    Ghost,
+    Scythe,
+    Graveyard,
+    ReaperScythe,
+    Drowning,
+    InternalInjury,
+    Prayer,
+    DeadEye,
+    RestingVampire,
+    Tombstone,
+    DeadWood,
+    PirateGrave,
+    Coffin,
+    Carrion,
+    EgyptianUrns,
+    GraveFlowers,
+    GrimReaper,
+    ExecutionerHood,
+    Maggot
+}
+
+impl Default for Avatar {
+    fn default() -> Self {
+        Avatar::LifeInTheBalance
+    }
+}
+// space = 8 + 32 + 1 + 8 + 8 + 8 + 1// std::mem::size_of::<Player>(), // Adjust space according to your needs

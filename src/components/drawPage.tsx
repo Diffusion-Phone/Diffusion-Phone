@@ -1,5 +1,4 @@
 'use client';
-import { useSocketAuth } from "@/contexts/SocketAuthContext";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import {
@@ -13,10 +12,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
-import { useWallet } from "@solana/wallet-adapter-react";
 import { useGameState } from "@/contexts/GameStateProvider";
-import { useAction } from "@/lib/useAction";
+import { submitImage as submitImageFn, generateImage as generateImageFn} from "@/lib/useAction";
+import { useMutation } from "@tanstack/react-query";
+import { useWorkspace } from "@/contexts/WorkspaceProvider";
 
 function FinishDialog({ open }: { open: boolean }) {
   return (
@@ -41,32 +40,42 @@ const inputStyle =
   "flex-1 border ring-orange-600 ring-[5px] rounded-lg focus-visible:ring-emerald-600 focus-visible:ring-[5px]";
 
 export default function DrawRoom() {
-  const router = useRouter();
-  const { socket } = useSocketAuth();
-  const wallet = useWallet();
+  const { provider, program, gamePda } = useWorkspace();
   // received content, either image or story
   const [receivedPrompt, setPrompt] = useState<string | null>(null);
   const [aiPrompt, setAIPrompt] = useState<string>("");
   // the AI image
   const [aiImage, setAiImage] = useState<string | null>(null);
   // is the AI generating the image
-  const [generating, setGenerating] = useState(false);
   // has the user submitted their content
   const [submitted, setSubmitted] = useState(false);
   // duration of the round
   const [timeLeft, setTimeLeft] = useState(60);
   const { prompt } = useGameState();
-  const { submitDrawing } = useAction();
 
-  const submitImage = (image: string) => {
-    submitDrawing(wallet.publicKey?.toBase58()!, image);
-    setSubmitted(true);
-  };
+
+  const generateIamge = useMutation({
+    mutationFn: async (prompt: string) => {
+      await generateImageFn({ provider, program, gamePda, prompt})
+    },
+    onSuccess: (image) => {
+      setAiImage(image as any);
+    }
+  })
+
+  const submitImage = useMutation({
+    mutationFn: async (image: string) => {
+      await submitImageFn({ provider, program, gamePda, image });
+    },
+    onSuccess: () => {
+      setSubmitted(true);
+    }
+  })
 
   useEffect(() => {
     // Exit early when we reach 0
     if (!timeLeft) {
-      submitImage(aiImage || "/404.png");
+      submitImage.mutate(aiImage || "/404.png");
     }
 
     // Save intervalId to clear the interval when the component re-renders
@@ -79,42 +88,6 @@ export default function DrawRoom() {
     // Add timeLeft as a dependency to re-run the effect
     // when we update it
   }, [timeLeft]);
-
-  useEffect(() => {
-    if (socket) {
-      // socket.emit("getPrompt");
-      // socket.on("prompt", (prompt: string) => {
-      //   setPrompt(prompt);
-      // });
-      // socket.on("allImagesSubmitted", () => {
-      //   setSubmitted(false);
-      //   router.push("/end");
-      // });
-    }
-  }, [socket]);
-
-  async function query(prompt: string) {
-    // console.log(process.env.NEXT_SDXL_API_KEY)
-    const response = await fetch(
-      "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
-      {
-        headers: { Authorization: process.env.SDXL_API_KEY || "" },
-        method: "POST",
-        body: JSON.stringify({ inputs: prompt }),
-      },
-    );
-    const result = await response.blob();
-    return result;
-  }
-
-  const generate = async (e) => {
-    e.preventDefault();
-    setGenerating(true);
-    const blob = await query(aiPrompt);
-    const url = URL.createObjectURL(blob);
-    setGenerating(false);
-    setAiImage(url);
-  };
 
   return (
     <>
@@ -163,8 +136,8 @@ export default function DrawRoom() {
             />
             <Button
               className={buttonStyle}
-              onClick={generate}
-              disabled={generating}
+              onClick={(e) => {generateIamge.mutate(aiPrompt)}}
+              disabled={generateIamge.status === "pending"}
             >
               Generate
             </Button>
@@ -172,8 +145,9 @@ export default function DrawRoom() {
               className={buttonStyle}
               onClick={(e) => {
                 e.preventDefault();
-                submitImage(aiImage!);
+                submitImage.mutate(aiImage!);
               }}
+              // disabled={!aiImage || submitImage.status === "pending"}
             >
               Submit
             </Button>
